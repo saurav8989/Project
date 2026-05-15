@@ -1,4 +1,4 @@
-# Project Thesis
+# Project
 
 DHIS2 to FHIR Pipeline for Immunization Data.
 
