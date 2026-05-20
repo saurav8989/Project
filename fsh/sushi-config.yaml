@@ -1,0 +1,16 @@
+id: np.gov.mohp.immunization
+canonical: http://mohp.gov.np/fhir
+name: NepalImmunizationIG
+title: "National Childhood Immunization Implementation Guide"
+description: "FHIR Implementation Guide for standardizing aggregate immunization data from DHIS2 in Nepal."
+version: 1.0.0
+status: draft
+publisher: Ministry of Health and Population (MoHP), Nepal
+contact:
+  - name: Health Informatics Thesis Project
+    telecom:
+      - system: url
+        value: "http://example.org"
+fhirVersion: 4.0.1
+dependencies:
+  hl7.fhir.r4.core: 4.0.1
