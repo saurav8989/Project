@@ -1,6 +1,0 @@
-Output File                                                 Name                            Type        FSH File                            Lines
-CodeSystem-nepal-vaccine-indicator-cs.json                  NepalVaccineIndicatorCS         CodeSystem  VaccineIndicators.fsh               1 - 23
-StructureDefinition-nepal-immunization-measure-report.json  NepalImmunizationMeasureReport  Profile     NepalImmunizationMeasureReport.fsh  1 - 31
-StructureDefinition-nepal-immunization-measure.json         NepalImmunizationMeasure        Profile     NepalImmunizationMeasure.fsh        1 - 23
-StructureDefinition-nepali-fiscal-period.json               NepaliFiscalPeriod              Extension   NepaliFiscalYear.fsh                1 - 7
-ValueSet-nepal-vaccine-indicator-vs.json                    NepalVaccineIndicatorVS         ValueSet    VaccineIndicators.fsh               25 - 29
