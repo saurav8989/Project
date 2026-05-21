@@ -39,7 +39,7 @@ jobs:
       - name: Run IG Publisher
         run: |
           cd fsh
-          curl -L https://github.com/HL7/fhir-ig-publisher/releases/latest/download/publisher.jar -o publisher.jar
+          curl -L https://github.com/HL7/fhir-ig-publisher/releases/download/2.1.2/publisher.jar -o publisher.jar
           java -jar publisher.jar -ig .
           
       - name: Upload artifact
