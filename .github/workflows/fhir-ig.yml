@@ -15,10 +15,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Build IG
-        uses: qligier/fhir-ig-action@v0.3.0
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          ig-dir: fsh
+          node-version: '18'
+          
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+          
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          
+      - name: Install SUSHI & Jekyll
+        run: |
+          npm install -g fsh-sushi
+          gem install jekyll bundler
+          
+      - name: Run IG Publisher
+        run: |
+          cd fsh
+          curl -L https://github.com/HL7/fhir-ig-publisher/releases/latest/download/publisher.jar -o publisher.jar
+          java -jar publisher.jar -ig .
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
