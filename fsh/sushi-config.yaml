@@ -16,4 +16,7 @@ dependencies:
   hl7.fhir.uv.extensions.r4: 5.1.0
 copyrightYear: "2026+"
 releaseLabel: "ballot"
+menu:
+  IG Home: index.html
+  Artifacts: artifacts.html
 
