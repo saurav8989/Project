@@ -1,0 +1,126 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "nepal-immunization-measure-report",
+  "url": "http://mohp.gov.np/fhir/StructureDefinition/nepal-immunization-measure-report",
+  "name": "NepalImmunizationMeasureReport",
+  "title": "Nepal DHIS2 Immunization MeasureReport",
+  "status": "draft",
+  "description": "A strict profile on the MeasureReport resource to enforce constraints for Nepal's aggregate DHIS2 immunization reporting.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "MeasureReport",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/MeasureReport",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "MeasureReport.type",
+        "path": "MeasureReport.type",
+        "patternCode": "summary"
+      },
+      {
+        "id": "MeasureReport.measure",
+        "path": "MeasureReport.measure",
+        "type": [
+          {
+            "code": "canonical",
+            "targetProfile": [
+              "http://mohp.gov.np/fhir/StructureDefinition/nepal-immunization-measure"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "MeasureReport.subject",
+        "path": "MeasureReport.subject",
+        "min": 1,
+        "type": [
+          {
+            "code": "Reference",
+            "targetProfile": [
+              "http://hl7.org/fhir/StructureDefinition/Location"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "MeasureReport.period.extension",
+        "path": "MeasureReport.period.extension",
+        "min": 1
+      },
+      {
+        "id": "MeasureReport.period.extension:nepaliFiscalPeriod",
+        "path": "MeasureReport.period.extension",
+        "sliceName": "nepaliFiscalPeriod",
+        "min": 1,
+        "max": "1",
+        "type": [
+          {
+            "code": "Extension",
+            "profile": [
+              "http://mohp.gov.np/fhir/StructureDefinition/nepali-fiscal-period"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "MeasureReport.group",
+        "path": "MeasureReport.group",
+        "min": 1
+      },
+      {
+        "id": "MeasureReport.group.population",
+        "path": "MeasureReport.group.population",
+        "slicing": {
+          "discriminator": [
+            {
+              "type": "value",
+              "path": "code.coding.code"
+            }
+          ],
+          "rules": "open"
+        },
+        "min": 2
+      },
+      {
+        "id": "MeasureReport.group.population:numerator",
+        "path": "MeasureReport.group.population",
+        "sliceName": "numerator",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "MeasureReport.group.population:numerator.code",
+        "path": "MeasureReport.group.population.code",
+        "patternCodeableConcept": {
+          "coding": [
+            {
+              "code": "numerator",
+              "system": "http://terminology.hl7.org/CodeSystem/measure-population"
+            }
+          ]
+        }
+      },
+      {
+        "id": "MeasureReport.group.population:denominator",
+        "path": "MeasureReport.group.population",
+        "sliceName": "denominator",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "MeasureReport.group.population:denominator.code",
+        "path": "MeasureReport.group.population.code",
+        "patternCodeableConcept": {
+          "coding": [
+            {
+              "code": "denominator",
+              "system": "http://terminology.hl7.org/CodeSystem/measure-population"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

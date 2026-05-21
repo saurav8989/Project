@@ -1,0 +1,50 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "nepali-fiscal-period",
+  "url": "http://mohp.gov.np/fhir/StructureDefinition/nepali-fiscal-period",
+  "name": "NepaliFiscalPeriod",
+  "title": "Nepali Fiscal Period",
+  "status": "draft",
+  "description": "An extension to capture the original Bikram Sambat (Nepali) fiscal year and month string exactly as extracted from DHIS2.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "MeasureReport.period"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Nepali Fiscal Period",
+        "definition": "An extension to capture the original Bikram Sambat (Nepali) fiscal year and month string exactly as extracted from DHIS2."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "http://mohp.gov.np/fhir/StructureDefinition/nepali-fiscal-period"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}
