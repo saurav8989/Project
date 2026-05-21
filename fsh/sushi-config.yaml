@@ -12,7 +12,8 @@ contact:
       - system: url
         value: "http://example.org"
 fhirVersion: 4.0.1
+dependencies:
+  hl7.fhir.uv.extensions.r4: 5.1.0
 copyrightYear: "2026+"
 releaseLabel: "ballot"
-dependencies:
-  hl7.fhir.r4.core: 4.0.1
+
