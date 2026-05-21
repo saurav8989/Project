@@ -39,8 +39,10 @@ jobs:
       - name: Run IG Publisher
         run: |
           cd fsh
-          curl -L https://github.com/HL7/fhir-ig-publisher/releases/download/1.6.14/publisher.jar -o publisher.jar
-          java -jar publisher.jar -ig .
+          curl -L https://github.com/HL7/fhir-ig-publisher/releases/latest/download/publisher.jar -o publisher.jar
+          sushi .
+          mv sushi-config.yaml sushi-config.yaml.bak
+          java -jar publisher.jar -ig ig.ini -no-sushi
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
