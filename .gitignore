@@ -39,3 +39,7 @@ Thumbs.db
 node_modules/
 
 fsh-generated/
+
+# Ignored large binaries
+*.jar
+*.zip
