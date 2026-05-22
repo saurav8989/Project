@@ -79,11 +79,14 @@ def create_measure_report(row, measure_id, numerator_col):
     start_date, end_date = get_proxy_gregorian_dates(str(row['Fiscal Year']), int(row['Month No.']))
     period_obj = Period(start=start_date, end=end_date)
     
+    # 3. Create the Base MeasureReport with Subject and Reporter references
     report = MeasureReport(
         status="complete",
         type="summary",
         measure=f"http://example.org/fhir/Measure/{measure_id}",
-        period=period_obj
+        period=period_obj,
+        subject={"reference": "Location/loc-kavrepalanchok"},
+        reporter={"reference": "Organization/org-dho-kavre"}
     )
     report.id = report_id
     report.extension = [nepali_ext]
