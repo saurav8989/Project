@@ -162,10 +162,21 @@ if selected_family == "-- Select Vaccine --" or selected_fy == "-- Select Fiscal
                 if curr in pivot.columns and nxt in pivot.columns:
                     global_violations += (pivot[nxt] > pivot[curr]).sum()
                     
-    kpi1, kpi2, kpi3 = st.columns(3)
+    # Calculate global average dropout across all multi-series vaccines
+    global_first_doses = 0
+    global_last_doses = 0
+    for family in VACCINE_FAMILIES.values():
+        if len(family) > 1:
+            global_first_doses += df[df["Vaccine_ID"] == family[0]]["Doses_Administered"].sum()
+            global_last_doses += df[df["Vaccine_ID"] == family[-1]]["Doses_Administered"].sum()
+            
+    global_dropout = ((global_first_doses - global_last_doses) / global_first_doses * 100) if global_first_doses > 0 else 0.0
+
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     kpi1.metric("Total Records", f"{total_fhir_records:,}")
     kpi2.metric("Total Coverage Outliers (>100%)", f"{total_outliers:,}")
     kpi3.metric("Total Logical Violations", f"{global_violations:,}")
+    kpi4.metric("Avg System Dropout", f"{global_dropout:.1f}%")
     
     st.divider()
     
@@ -216,6 +227,30 @@ if selected_family == "-- Select Vaccine --" or selected_fy == "-- Select Fiscal
         fig_vol.update_layout(showlegend=False, xaxis=dict(range=[0, vol_df["Total Doses"].max() * 1.2]))
         st.plotly_chart(fig_vol, use_container_width=True)
 
+        # Overall Dropout Rate Bar Chart
+        dropout_data = []
+        for family_name, indicators in VACCINE_FAMILIES.items():
+            if len(indicators) > 1:
+                first = indicators[0]
+                last = indicators[-1]
+                first_tot = df[df["Vaccine_ID"] == first]["Doses_Administered"].sum()
+                last_tot = df[df["Vaccine_ID"] == last]["Doses_Administered"].sum()
+                if first_tot > 0:
+                    drop = ((first_tot - last_tot) / first_tot) * 100
+                    dropout_data.append({"Vaccine Family": family_name, "Dropout Rate (%)": drop})
+                    
+        if dropout_data:
+            drop_df = pd.DataFrame(dropout_data).sort_values("Dropout Rate (%)", ascending=False)
+            fig_drop_macro = px.bar(
+                drop_df, x="Vaccine Family", y="Dropout Rate (%)",
+                title="Overall Dropout Rate by Vaccine (5 Years)",
+                text="Dropout Rate (%)",
+                color="Vaccine Family"
+            )
+            fig_drop_macro.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig_drop_macro.update_layout(showlegend=False, yaxis=dict(range=[0, drop_df["Dropout Rate (%)"].max() + 5]))
+            st.plotly_chart(fig_drop_macro, use_container_width=True)
+
     st.stop()
 
 # Filter Data for Selected Family & FY
@@ -256,11 +291,25 @@ if not df_facility.empty:
     if total_expected > 0:
         facility_rate = (total_reported / total_expected) * 100
 
-col1, col2, col3 = st.columns(3)
-# col1.metric("FHIR Records Found", f"{total_records} / {expected_records} Expected")
-col1.metric("Data Completeness", f"{completeness_pct:.1f}%", help="Missing records (like TCV) lower this score.")
-col2.metric(f"Avg {selected_family} Coverage", f"{avg_coverage:.1f}%")
-col3.metric("Facility Reporting Rate", f"{facility_rate:.1f}%", help="Derived from raw DHIS2 datasets.")
+if len(family_indicators) > 1:
+    col1, col2, col3, col4 = st.columns(4)
+    first_dose = family_indicators[0]
+    last_dose = family_indicators[-1]
+    
+    first_dose_total = filtered_df[filtered_df["Vaccine_ID"] == first_dose]["Doses_Administered"].sum()
+    last_dose_total = filtered_df[filtered_df["Vaccine_ID"] == last_dose]["Doses_Administered"].sum()
+    overall_dropout = ((first_dose_total - last_dose_total) / first_dose_total * 100) if first_dose_total > 0 else 0.0
+    
+    col1.metric("Data Completeness", f"{completeness_pct:.1f}%", help="Missing records (like TCV) lower this score.")
+    col2.metric(f"Avg {selected_family} Coverage", f"{avg_coverage:.1f}%")
+    col3.metric("Facility Reporting Rate", f"{facility_rate:.1f}%", help="Derived from raw DHIS2 datasets.")
+    
+    col4.metric(f"Overall Dropout ({first_dose.upper()}-{last_dose.upper()})", f"{overall_dropout:.1f}%")
+else:
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Data Completeness", f"{completeness_pct:.1f}%", help="Missing records (like TCV) lower this score.")
+    col2.metric(f"Avg {selected_family} Coverage", f"{avg_coverage:.1f}%")
+    col3.metric("Facility Reporting Rate", f"{facility_rate:.1f}%", help="Derived from raw DHIS2 datasets.")
 
 st.divider()
 
@@ -313,8 +362,42 @@ else:
 
 st.divider()
 
-# --- 3. Consistency & Outliers ---
-st.subheader("3. Data Quality Assessment (DQA)")
+# --- 3. Dropout & Retention Analysis ---
+if len(family_indicators) > 1:
+    st.subheader("3. Dropout & Retention Analysis")
+    first_dose = family_indicators[0]
+    last_dose = family_indicators[-1]
+    st.markdown(f"**{first_dose.upper()} to {last_dose.upper()} Dropout Rate**")
+    st.caption("Measures health system retention by comparing the first dose to the final dose.")
+    
+    pivot_do = filtered_df.pivot_table(index=["Date", "Fiscal_Year", "Month"], columns="Vaccine_ID", values="Doses_Administered").reset_index()
+    
+    pivot_do["Dropout_Rate"] = pivot_do.apply(
+        lambda x: ((x.get(first_dose, 0) - x.get(last_dose, 0)) / x.get(first_dose, 1) * 100) 
+        if pd.notna(x.get(first_dose)) and x.get(first_dose, 0) > 0 and pd.notna(x.get(last_dose)) else 0.0, 
+        axis=1
+    )
+    
+    pivot_do = pivot_do.sort_values("Date")
+    
+    fig_do = px.line(
+        pivot_do, 
+        x="Date" if selected_fy == "All Years" else "Month", 
+        y="Dropout_Rate", 
+        markers=True,
+        labels={"Dropout_Rate": "Dropout Rate (%)"}
+    )
+    
+    # Dynamic Y-axis
+    y_min = min(0, pivot_do["Dropout_Rate"].min())
+    y_max = max(20, pivot_do["Dropout_Rate"].max() + 5)
+    fig_do.update_layout(yaxis=dict(range=[y_min, y_max]))
+    
+    st.plotly_chart(fig_do, use_container_width=True)
+    st.divider()
+
+# --- 4. Consistency & Outliers ---
+st.subheader("4. Data Quality Assessment (DQA)")
 if len(family_indicators) > 1:
     dqa_col1, dqa_col2 = st.columns(2)
 
