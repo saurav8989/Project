@@ -12,5 +12,6 @@ Description: "An extension to capture the original Bikram Sambat (Nepali) fiscal
 
 * extension[fiscalYear].value[x] only string
 * extension[monthEnglish].value[x] only string
+* extension[monthEnglish].valueString from BikramSambatMonthsVS (required)
 * extension[monthNepali].value[x] only string
 * extension[district].value[x] only string
