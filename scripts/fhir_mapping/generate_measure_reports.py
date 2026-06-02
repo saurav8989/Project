@@ -89,7 +89,17 @@ def create_measure_report(row, measure_id, numerator_col):
         reporter={"reference": "Organization/org-dho-kavre"}
     )
     report.id = report_id
-    report.extension = [nepali_ext]
+    # Add Facility Reporting Status Extension
+    facility_ext = Extension(
+        url="http://mohp.gov.np/fhir/StructureDefinition/facility-reporting-status",
+        extension=[
+            Extension(url="expected", valueInteger=int(row['Facilities Expected'])),
+            Extension(url="reported", valueInteger=int(row['Facilities Reported'])),
+            Extension(url="notReported", valueInteger=int(row['Facilities Not Reported']))
+        ]
+    )
+    
+    report.extension = [nepali_ext, facility_ext]
     
     # 3. Inject the Numerator and Denominator Data
     numerator_val = int(row[numerator_col])

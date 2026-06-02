@@ -44,9 +44,13 @@ def fetch_fhir_data():
             measure_ref = resource.get("measure", "")
             vaccine_id = measure_ref.split("Measure/measure-")[-1]
             
-            # Parse Custom Extensions (Fiscal Year, Month)
+            # Parse Custom Extensions (Fiscal Year, Month, Facility Reporting)
             fiscal_year = "Unknown"
             month_nepali = "Unknown"
+            fac_expected = 0
+            fac_reported = 0
+            fac_not_reported = 0
+            
             extensions = resource.get("extension", [])
             for ext in extensions:
                 if ext.get("url") == "http://example.org/fhir/StructureDefinition/nepali-fiscal-period":
@@ -56,6 +60,16 @@ def fetch_fhir_data():
                             fiscal_year = sub.get("valueString", "Unknown")
                         elif sub.get("url") == "monthEnglish":
                             month_nepali = sub.get("valueString", "Unknown")
+                
+                elif ext.get("url") == "http://mohp.gov.np/fhir/StructureDefinition/facility-reporting-status":
+                    sub_exts = ext.get("extension", [])
+                    for sub in sub_exts:
+                        if sub.get("url") == "expected":
+                            fac_expected = sub.get("valueInteger", 0)
+                        elif sub.get("url") == "reported":
+                            fac_reported = sub.get("valueInteger", 0)
+                        elif sub.get("url") == "notReported":
+                            fac_not_reported = sub.get("valueInteger", 0)
             
             # Extract Metrics
             numerator = 0
@@ -92,7 +106,10 @@ def fetch_fhir_data():
                 "Doses_Administered": numerator,
                 "Target_Population": denominator,
                 "Coverage_Percentage": percentage,
-                "Is_Absent": is_absent
+                "Is_Absent": is_absent,
+                "Facilities_Expected": fac_expected,
+                "Facilities_Reported": fac_reported,
+                "Facilities_Not_Reported": fac_not_reported
             })
             
         return pd.DataFrame(data)
@@ -100,21 +117,9 @@ def fetch_fhir_data():
         st.error(f"Failed to fetch data: {e}")
         return pd.DataFrame()
 
-@st.cache_data(ttl=600)
-def fetch_facility_data():
-    """Fetches facility reporting data from the raw CSV."""
-    try:
-        df_csv = pd.read_csv("data/processed/Cleaned_Data.csv")
-        df_csv["Facilities Expected"] = pd.to_numeric(df_csv["Facilities Expected"], errors="coerce")
-        df_csv["Facilities Reported"] = pd.to_numeric(df_csv["Facilities Reported"], errors="coerce")
-        return df_csv
-    except Exception:
-        return pd.DataFrame()
-
 # --- Load Data ---
 with st.spinner("Fetching standard FHIR resources from API..."):
     df = fetch_fhir_data()
-    df_facility = fetch_facility_data()
 
 if df.empty:
     st.warning("No data available. Please ensure the FastAPI server is running on http://127.0.0.1:8000.")
@@ -278,16 +283,13 @@ completeness_pct = (valid_records / total_records) * 100 if total_records > 0 el
 
 avg_coverage = filtered_df["Coverage_Percentage"].mean()
 
-# Calculate Facility Reporting Rate
+# Calculate Facility Reporting Rate from native FHIR Data
 facility_rate = 0.0
-if not df_facility.empty:
-    if selected_fy != "All Years":
-        fac_df = df_facility[df_facility["Fiscal Year"] == selected_fy]
-    else:
-        fac_df = df_facility
-    
-    total_expected = fac_df["Facilities Expected"].sum()
-    total_reported = fac_df["Facilities Reported"].sum()
+if not df.empty:
+    # We must drop duplicates by Date because we have 18 vaccine records per month, and we only want to sum facility data once per month
+    fac_df = filtered_df.drop_duplicates(subset=["Date"])
+    total_expected = fac_df["Facilities_Expected"].sum()
+    total_reported = fac_df["Facilities_Reported"].sum()
     if total_expected > 0:
         facility_rate = (total_reported / total_expected) * 100
 

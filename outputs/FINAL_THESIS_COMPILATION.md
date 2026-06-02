@@ -4,8 +4,7 @@
 Masters in Health Informatics  
 Submitted: May 2026
 
-**Author:** Saurav Paudel  
-**Email:** prastabpaudel1234@gmail.com
+**Author:** Saurav Dhakal
 
 ---
 
@@ -119,26 +118,26 @@ The primary dataset was extracted from Nepal's DHIS2 HMIS for **Kavrepalanchok d
 
 The raw dataset (`Data.xlsx`) contains **60 rows and 31 columns** with the following structure:
 
-| Column Group | Fields | Count |
-|---|---|---|
-| Administrative metadata | SN, Fiscal Year, Month No., Month (EN), Month (NP), District, Province, Dist. Code | 8 |
-| Vaccine dose counts | BCG through TCV (18 indicators) | 18 |
-| Population denominators | Surviving Infants (Annual), Surviving Infants (Monthly) | 2 |
-| Facility reporting | Facilities Expected, Facilities Reported, Facilities Not Reported | 3 |
+| Column Group            | Fields                                                                             | Count |
+| ----------------------- | ---------------------------------------------------------------------------------- | ----- |
+| Administrative metadata | SN, Fiscal Year, Month No., Month (EN), Month (NP), District, Province, Dist. Code | 8     |
+| Vaccine dose counts     | BCG through TCV (18 indicators)                                                    | 18    |
+| Population denominators | Surviving Infants (Annual), Surviving Infants (Monthly)                            | 2     |
+| Facility reporting      | Facilities Expected, Facilities Reported, Facilities Not Reported                  | 3     |
 
 **Table 1: Vaccine Indicators in the Dataset**
 
-| Vaccine | Abbreviation | Doses | FHIR Measure ID |
-|---|---|---|---|
-| BCG (Tuberculosis) | BCG | 1 | `measure-bcg` |
-| Rotavirus | Rota | 2 | `measure-rota1`, `measure-rota2` |
-| Oral Polio Vaccine | OPV | 3 | `measure-opv1`, `measure-opv2`, `measure-opv3` |
-| Fractional Inactivated Polio Vaccine | fIPV | 2 | `measure-fipv1`, `measure-fipv2` |
-| Pneumococcal Conjugate Vaccine | PCV | 3 | `measure-pcv1`, `measure-pcv2`, `measure-pcv3` |
-| Pentavalent (DTP-HepB-Hib) | Penta | 3 | `measure-penta1`, `measure-penta2`, `measure-penta3` |
-| Measles-Rubella | MR | 2 | `measure-mr1`, `measure-mr2` |
-| Japanese Encephalitis | JE | 1 | `measure-je` |
-| Typhoid Conjugate Vaccine | TCV | 1 | `measure-tcv` |
+| Vaccine                              | Abbreviation | Doses | FHIR Measure ID                                      |
+| ------------------------------------ | ------------ | ----- | ---------------------------------------------------- |
+| BCG (Tuberculosis)                   | BCG          | 1     | `measure-bcg`                                        |
+| Rotavirus                            | Rota         | 2     | `measure-rota1`, `measure-rota2`                     |
+| Oral Polio Vaccine                   | OPV          | 3     | `measure-opv1`, `measure-opv2`, `measure-opv3`       |
+| Fractional Inactivated Polio Vaccine | fIPV         | 2     | `measure-fipv1`, `measure-fipv2`                     |
+| Pneumococcal Conjugate Vaccine       | PCV          | 3     | `measure-pcv1`, `measure-pcv2`, `measure-pcv3`       |
+| Pentavalent (DTP-HepB-Hib)           | Penta        | 3     | `measure-penta1`, `measure-penta2`, `measure-penta3` |
+| Measles-Rubella                      | MR           | 2     | `measure-mr1`, `measure-mr2`                         |
+| Japanese Encephalitis                | JE           | 1     | `measure-je`                                         |
+| Typhoid Conjugate Vaccine            | TCV          | 1     | `measure-tcv`                                        |
 
 ### 4.3 Initial Data Quality Observations
 
@@ -227,14 +226,14 @@ Internal consistency was evaluated using the **immunization drop-out rule**: for
 
 The following rules were enforced across all 60 monthly records:
 
-| Vaccine | Rules |
-|---|---|
-| Rota | Rota1 ≥ Rota2 |
-| OPV | OPV1 ≥ OPV2 ≥ OPV3 |
-| fIPV | fIPV1 ≥ fIPV2 |
-| PCV | PCV1 ≥ PCV2 ≥ PCV3 |
-| Penta | Penta1 ≥ Penta2 ≥ Penta3 |
-| MR | MR1 ≥ MR2 |
+| Vaccine | Rules                    |
+| ------- | ------------------------ |
+| Rota    | Rota1 ≥ Rota2            |
+| OPV     | OPV1 ≥ OPV2 ≥ OPV3       |
+| fIPV    | fIPV1 ≥ fIPV2            |
+| PCV     | PCV1 ≥ PCV2 ≥ PCV3       |
+| Penta   | Penta1 ≥ Penta2 ≥ Penta3 |
+| MR      | MR1 ≥ MR2                |
 
 Violations were recorded with the full row context (Fiscal Year, Month, District, dose pair, actual counts, and the magnitude of violation).
 
@@ -251,6 +250,7 @@ Coverage (%) = (Doses Administered / Surviving Infants Monthly) × 100
 Any record where Coverage > 100% was flagged as an impossible anomaly, since more children cannot be vaccinated than exist in the target population. While such values can arise from legitimate causes (e.g., out-of-district children receiving vaccines in a higher-capacity facility), they represent a denominator problem that compromises standard coverage reporting.
 
 **Statistical Outlier Detection** applied two complementary algorithms to the raw dose count columns:
+
 - **Z-Score method:** Records with |Z| > 3 were flagged as extreme statistical outliers.
 - **IQR method:** Records outside [Q1 − 1.5×IQR, Q3 + 1.5×IQR] were flagged as potential outliers.
 
@@ -267,6 +267,7 @@ Outliers were categorized as either **Spikes** (sudden upward surges) or **Drops
 A formal schema validation was conducted using the **Pandera** library, which allows for declarative DataFrame schema specifications. This phase applied the same drop-out logic rules as Phase 2 but in a formal, machine-enforced schema framework that can be audited and reproduced.
 
 The schema enforced the following constraints:
+
 - `Month No.` must be an integer in range [1, 12].
 - `Surviving Infants (Monthly)` must be ≥ 0.
 - All vaccine dose columns must be ≥ 0.
@@ -312,15 +313,15 @@ The FHIR **Public Health Measure Reporting Framework** (Measure + MeasureReport)
 
 **Semantic Mapping Table**
 
-| DHIS2 Concept | FHIR Concept |
-|---|---|
-| Vaccine indicator (e.g., "BCG") | `Measure` resource (1 per vaccine) |
-| Dose count (Numerator) | `MeasureReport.group.population[numerator].count` |
+| DHIS2 Concept                   | FHIR Concept                                        |
+| ------------------------------- | --------------------------------------------------- |
+| Vaccine indicator (e.g., "BCG") | `Measure` resource (1 per vaccine)                  |
+| Dose count (Numerator)          | `MeasureReport.group.population[numerator].count`   |
 | Surviving Infants (Denominator) | `MeasureReport.group.population[denominator].count` |
-| Coverage % | `MeasureReport.group.measureScoreQuantity.value` |
-| Fiscal Year + Month | Custom `nepali-fiscal-period` FHIR Extension |
-| Gregorian proxy period | `MeasureReport.period` (start/end dates) |
-| Missing data (zero count) | `DataAbsentReason` FHIR Extension on population |
+| Coverage %                      | `MeasureReport.group.measureScoreQuantity.value`    |
+| Fiscal Year + Month             | Custom `nepali-fiscal-period` FHIR Extension        |
+| Gregorian proxy period          | `MeasureReport.period` (start/end dates)            |
+| Missing data (zero count)       | `DataAbsentReason` FHIR Extension on population     |
 
 ---
 
@@ -333,6 +334,7 @@ All FHIR resources were generated programmatically using the `fhir.resources` Py
 #### 6A. Measure Resource Generation (18 resources)
 
 For each of the 18 vaccine indicators, a `Measure` resource was generated as a definitional blueprint. Each `Measure` contains:
+
 - A unique canonical URL: `http://example.org/fhir/Measure/measure-{vaccine_id}`
 - A machine-readable `name` and human-readable `title`
 - A population group defining three populations using the standard `http://terminology.hl7.org/CodeSystem/measure-population` coding:
@@ -342,6 +344,7 @@ For each of the 18 vaccine indicators, a `Measure` resource was generated as a d
 - CQL (Clinical Quality Language) expression stubs to formally declare the population criteria
 
 **Output Artifacts:**
+
 - 18 individual JSON files: `data/fhir/measures/measure-{id}.json`
 - 1 master FHIR Bundle: `data/fhir/master_measures_bundle.json`
 
@@ -352,6 +355,7 @@ For each of the 60 monthly records in `Cleaned_Data.csv` and each of the 18 vacc
 Each `MeasureReport` contains:
 
 **Standard FHIR Fields:**
+
 - `id`: Unique identifier (e.g., `measure-bcg-row-1`)
 - `status`: `complete`
 - `type`: `summary` (aggregate report)
@@ -362,6 +366,7 @@ Each `MeasureReport` contains:
 
 **Custom Extension — `nepali-fiscal-period`:**
 Because DHIS2 uses the Bikram Sambat (BS) calendar and Nepali month names, which do not align with ISO-8601, a custom FHIR Extension was engineered with the canonical URL `http://example.org/fhir/StructureDefinition/nepali-fiscal-period`. This extension carries four sub-extension values:
+
 - `fiscalYear`: Nepali fiscal year string (e.g., `"2077/78"`)
 - `monthEnglish`: English transliteration of month (e.g., `"Shrawan"`)
 - `monthNepali`: Nepali Devanagari script month name (e.g., `"श्रावण"`)
@@ -371,12 +376,14 @@ This extension ensures that the FHIR resources carry the ground-truth temporal c
 
 **Missing Data Handling — `DataAbsentReason` Extension:**
 For TCV records where the dose count was zero (representing months before TCV introduction), the `count` integer was **omitted** from the numerator population rather than set to zero. In its place, the FHIR `DataAbsentReason` extension was applied:
+
 - TCV zero counts: `not-applicable` (vaccine not yet introduced in that period)
 - Other vaccine zero counts: `unknown` (data not reported by facilities)
 
 This is a critical clinical fidelity decision: a missing count in FHIR carries a different semantic meaning than a zero count. A zero implies "zero doses were given," whereas `DataAbsentReason` correctly communicates "this data point was not recorded."
 
 **Output Artifacts:**
+
 - 60 month-wise directories: `data/fhir/monthwise_measure_report/{fiscal_year_month}/`
 - 1,080 individual MeasureReport JSON files distributed across these directories
 - 60 month-specific FHIR Bundles (one per directory)
@@ -395,6 +402,7 @@ Every JSON file was re-parsed using the `fhir.resources` Python library. Because
 
 **Level 2 — Logical & Mathematical Consistency:**
 Custom Python logic performed two additional audits beyond structural validation:
+
 1. **Score Accuracy Audit:** For each `MeasureReport`, the coverage percentage was independently recalculated as `(numerator / denominator) × 100` and compared against the `measureScoreQuantity.value` stored in the resource. Any discrepancy would indicate a generation error.
 2. **DataAbsentReason Compliance Audit:** For every population where the `count` field was omitted, the script verified that a valid `DataAbsentReason` extension was present. Populations missing both a count and the required extension would be flagged as clinically non-compliant.
 
@@ -408,15 +416,17 @@ To elevate the project from a local data transformation pipeline to a formally p
 
 **Components of the Implementation Guide:**
 
-1. **Custom Terminology Bindings:** 
+1. **Custom Terminology Bindings:**
    - `VaccineIndicators`: A formal `CodeSystem` and `ValueSet` enumerating the 18 valid vaccine indicator codes (e.g., `bcg`, `penta-1`).
    - `BikramSambatMonths`: A "Gold Standard" terminology artifact comprising a `CodeSystem` (`BikramSambatMonthsCS`) and `ValueSet` (`BikramSambatMonthsVS`) defining the 12 Nepali calendar months. This is directly bound to the `valueString` of the custom calendar extension.
 
-2. **Custom Extension (`NepaliFiscalYear`):** The `nepali-fiscal-period` extension used in the generated resources was formally specified as an FSH `Extension` definition. The month string is rigidly bound to the `BikramSambatMonthsVS` ValueSet, ensuring native FHIR validation of DHIS2 string values.
+2. **Custom Extensions:** 
+   - `NepaliFiscalYear`: The `nepali-fiscal-period` extension was formally specified to capture the DHIS2 calendar logic. The month string is rigidly bound to the `BikramSambatMonthsVS` ValueSet, ensuring native FHIR validation of DHIS2 string values.
+   - `FacilityReportingStatus`: An extension specifically authored to capture administrative metadata (`expected`, `reported`, and `notReported` facilities) at the root of an aggregate `MeasureReport`. This completely decoupled the downstream analytics dashboard from the raw CSV pipeline, sourcing 100% of the analytical parameters natively from FHIR standard payloads.
 
 3. **Resource Profiles:**
    - `NepalImmunizationMeasure`: A FHIR `Profile` constraining the standard `Measure` resource.
-   - `NepalImmunizationMeasureReport`: A FHIR `Profile` on `MeasureReport` mandating the `nepali-fiscal-period` extension and geographical subject references.
+   - `NepalImmunizationMeasureReport`: A FHIR `Profile` on `MeasureReport` mandating the `nepali-fiscal-period` and `facility-reporting-status` extensions, alongside geographical subject references.
 
 4. **Representative FHIR Instances:** Rather than overloading the IG Publisher with all 1,080 generated production records, perfectly conforming "Gold Standard" examples were authored natively in FSH (a `Location` for Kavrepalanchok, an `Organization` for DHO Kavre, and an exemplary `MeasureReport` for Penta 1). These serve as the canonical reference models within the IG.
 
@@ -436,13 +446,13 @@ A lightweight FHIR-compliant REST API was built using the **FastAPI** Python fra
 
 **API Endpoints:**
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/` | Health check — returns server status |
-| `GET` | `/fhir/Measure` | Returns FHIR Bundle of all 18 Measure blueprints |
-| `GET` | `/fhir/Measure/{measure_id}` | Returns a single Measure by ID (e.g., `measure-bcg`) |
-| `GET` | `/fhir/MeasureReport` | Returns FHIR Bundle of all 1,080 MeasureReports |
-| `GET` | `/fhir/MeasureReport/{report_id}` | Returns a single MeasureReport by ID |
+| Method | Path                              | Description                                          |
+| ------ | --------------------------------- | ---------------------------------------------------- |
+| `GET`  | `/`                               | Health check — returns server status                 |
+| `GET`  | `/fhir/Measure`                   | Returns FHIR Bundle of all 18 Measure blueprints     |
+| `GET`  | `/fhir/Measure/{measure_id}`      | Returns a single Measure by ID (e.g., `measure-bcg`) |
+| `GET`  | `/fhir/MeasureReport`             | Returns FHIR Bundle of all 1,080 MeasureReports      |
+| `GET`  | `/fhir/MeasureReport/{report_id}` | Returns a single MeasureReport by ID                 |
 
 The server loads the pre-compiled master bundle JSON files from disk for bulk requests and uses recursive directory search (`rglob`) across the 60 month-wise subdirectories for individual resource lookups. FastAPI automatically generates interactive OpenAPI (Swagger) documentation accessible at `/docs`.
 
@@ -458,6 +468,7 @@ The server loads the pre-compiled master bundle JSON files from disk for bulk re
 An interactive clinical analytics dashboard was built using **Streamlit** with **Plotly** visualizations. The dashboard fetches all data exclusively via HTTP GET requests to the FHIR API — it does not read any JSON or CSV files directly — demonstrating true end-to-end FHIR interoperability.
 
 **Data Pipeline within the Dashboard:**
+
 1. `fetch_fhir_data()` sends a `GET /fhir/MeasureReport` request to the API.
 2. Each entry in the returned FHIR Bundle is parsed: the `nepali-fiscal-period` extension is traversed for calendar context, populations are extracted by their `coding.code` values, and `DataAbsentReason` extensions are detected as missing data flags.
 3. The parsed data is structured into a Pandas DataFrame with columns: `Date`, `Fiscal_Year`, `Month`, `Vaccine_ID`, `Doses_Administered`, `Target_Population`, `Coverage_Percentage`, `Is_Absent`.
@@ -466,14 +477,16 @@ An interactive clinical analytics dashboard was built using **Streamlit** with *
 
 **Dashboard Sections:**
 
-*Landing Page (No filter selected):*
+_Landing Page (No filter selected):_
+
 - **Four global KPI cards:** Total FHIR Records, Total Coverage Outliers (>100%), Total Logical Violations, and Average System-wide Dropout Rate — providing an immediate macro-level health system summary without any filter selection.
 - Average coverage trend line chart across all vaccines over the 60-month period, summarizing the national immunization trajectory including the COVID-19 impact period.
 - Data quality donut chart: Clean Data vs. Coverage Outliers vs. Missing Data (TCV), derived from the `DataAbsentReason` extension parsed directly from FHIR resources.
 - Horizontal bar chart of total doses administered per vaccine family over 5 years.
 - **System-wide Dropout bar chart:** A dedicated horizontal bar chart displaying the 5-year aggregate dropout rates for all multi-dose vaccine families (Penta, OPV, PCV, Rota, MR, fIPV), enabling instant cross-vaccine retention comparison at the national level.
 
-*Drill-Down View (Vaccine Family + Fiscal Year selected):*
+_Drill-Down View (Vaccine Family + Fiscal Year selected):_
+
 - **Section 1 — Executive Metrics:** Data Completeness %, Average Vaccine Coverage %, Facility Reporting Rate %, and — exclusively for multi-dose vaccines — an **Overall Dropout Rate %** KPI dynamically calculated as the retention loss between Dose 1 and the final dose across the selected period.
 - **Section 2 — Epidemiological Analytics:** Longitudinal coverage trend line chart (coloured by dose for multi-dose vaccines); Clinical dropout bar chart showing total cumulative doses per dose number; and for multi-dose vaccines, an advanced **Dropout & Retention Analysis** module that plots the longitudinal dropout rate over the full 60-month period between Dose 1 and the final dose, revealing whether retention is improving or degrading over time.
 - **Section 3 — Data Quality Assessment:** Consistency violations table (dose logic errors per month), Coverage outliers table (records > 100%). The consistency check is dynamically omitted for single-dose vaccines where the drop-out rule is not applicable.
@@ -497,31 +510,31 @@ An interactive clinical analytics dashboard was built using **Streamlit** with *
 **Table 2: Facility Reporting Completeness by Fiscal Year**
 
 | Fiscal Year | Reporting Completeness (%) |
-|---|---|
-| 2077/78 | 75.21 |
-| 2078/79 | 75.91 |
-| 2079/80 | 86.34 |
-| 2080/81 | 87.92 |
-| 2081/82 | 87.80 |
+| ----------- | -------------------------- |
+| 2077/78     | 75.21                      |
+| 2078/79     | 75.91                      |
+| 2079/80     | 86.34                      |
+| 2080/81     | 87.92                      |
+| 2081/82     | 87.80                      |
 
 The data shows a strong positive trend, with facility reporting improving by approximately 12.6 percentage points over the five-year period. The improvement was particularly pronounced between FY 2079/80 and FY 2080/81, suggesting a systemic policy or administrative intervention improved compliance.
 
 **Table 3: Monthly Reporting Completeness (Average Across All 5 Years)**
 
-| Month | Completeness (%) |
-|---|---|
-| Shrawan | 81.68 |
-| Bhadra | 83.48 |
-| Ashwin | 79.81 |
-| Kartik | 81.49 |
-| Mangsir | 85.22 |
-| Poush | 75.16 |
-| Magh | 84.16 |
-| Falgun | 83.48 |
-| Chaitra | 83.23 |
-| Baishak | 88.35 |
-| Jestha | 82.73 |
-| Asar | 86.13 |
+| Month   | Completeness (%) |
+| ------- | ---------------- |
+| Shrawan | 81.68            |
+| Bhadra  | 83.48            |
+| Ashwin  | 79.81            |
+| Kartik  | 81.49            |
+| Mangsir | 85.22            |
+| Poush   | 75.16            |
+| Magh    | 84.16            |
+| Falgun  | 83.48            |
+| Chaitra | 83.23            |
+| Baishak | 88.35            |
+| Jestha  | 82.73            |
+| Asar    | 86.13            |
 
 The month of **Poush** (mid-December to mid-January) consistently showed the lowest reporting compliance (75.16%), likely due to winter weather disruptions in a mountainous district. **Baishak** (mid-April to mid-May) showed the highest compliance (88.35%), coinciding with Nepal's New Year period when administrative focus on health reporting is elevated.
 
@@ -531,18 +544,18 @@ The month of **Poush** (mid-December to mid-January) consistently showed the low
 
 **Table 4: Consistency Violations by Rule**
 
-| Violated Rule | Violations |
-|---|---|
-| MR1 ≥ MR2 | 34 |
-| Penta2 ≥ Penta3 | 32 |
-| OPV2 ≥ OPV3 | 31 |
-| PCV2 ≥ PCV3 | 30 |
-| Penta1 ≥ Penta2 | 26 |
-| PCV1 ≥ PCV2 | 26 |
-| fIPV1 ≥ fIPV2 | 26 |
-| OPV1 ≥ OPV2 | 25 |
-| Rota1 ≥ Rota2 | 25 |
-| **Total** | **255** |
+| Violated Rule   | Violations |
+| --------------- | ---------- |
+| MR1 ≥ MR2       | 34         |
+| Penta2 ≥ Penta3 | 32         |
+| OPV2 ≥ OPV3     | 31         |
+| PCV2 ≥ PCV3     | 30         |
+| Penta1 ≥ Penta2 | 26         |
+| PCV1 ≥ PCV2     | 26         |
+| fIPV1 ≥ fIPV2   | 26         |
+| OPV1 ≥ OPV2     | 25         |
+| Rota1 ≥ Rota2   | 25         |
+| **Total**       | **255**    |
 
 255 consistency violations were detected across all multi-dose vaccine pairs. MR (Measles-Rubella) showed the highest violation rate, followed closely by Penta and OPV.
 
@@ -551,12 +564,14 @@ The month of **Poush** (mid-December to mid-January) consistently showed the low
 ### 6.4 Outlier Detection Results
 
 **Coverage Anomalies:** 728 instances of coverage > 100% were detected across all vaccines and months. Notable examples:
+
 - BCG coverage reached **185.94%** in Ashwin 2077/78
 - BCG coverage reached **184.15%** in Bhadra 2077/78
 
 These extreme values indicate a fundamental denominator problem: the monthly surviving infant estimates used as the coverage denominator appear to be significantly understated relative to the actual vaccination catchment population. This may reflect children from neighbouring districts being vaccinated in Kavrepalanchok facilities.
 
 **Statistical Outliers:** 20 extreme outliers were detected:
+
 - 13 **Spikes**: sudden unexplained surges in single-month dose counts
 - 7 **Drops**: sudden unexplained collapses in dose counts
 
@@ -566,26 +581,27 @@ The Pandera schema validator returned 4,520 violations across the dataset. The d
 
 ### 6.6 FHIR Generation Results
 
-| Resource Type | Generated | Description |
-|---|---|---|
-| `Measure` | 18 | One per vaccine indicator |
-| `MeasureReport` | 1,080 | 60 months × 18 vaccines |
-| Month-wise directories | 60 | One per fiscal month |
-| Month-specific Bundles | 60 | One per month |
-| Master Measures Bundle | 1 | All 18 Measures |
-| Master MeasureReports Bundle | 1 | All 1,080 MeasureReports |
-| **Total FHIR files** | **1,098** | |
+| Resource Type                | Generated | Description               |
+| ---------------------------- | --------- | ------------------------- |
+| `Measure`                    | 18        | One per vaccine indicator |
+| `MeasureReport`              | 1,080     | 60 months × 18 vaccines   |
+| Month-wise directories       | 60        | One per fiscal month      |
+| Month-specific Bundles       | 60        | One per month             |
+| Master Measures Bundle       | 1         | All 18 Measures           |
+| Master MeasureReports Bundle | 1         | All 1,080 MeasureReports  |
+| **Total FHIR files**         | **1,098** |                           |
 
 ### 6.7 FHIR Validation Results
 
 **Table 5: FHIR Validation Summary**
 
-| Resource | Audited | Structural Pass | Logical Pass | Status |
-|---|---|---|---|---|
-| `Measure` | 18 | 18 (100%) | N/A | ✅ PASS |
-| `MeasureReport` | 1,080 | 1,080 (100%) | 1,080 (100%) | ✅ PASS |
+| Resource        | Audited | Structural Pass | Logical Pass | Status  |
+| --------------- | ------- | --------------- | ------------ | ------- |
+| `Measure`       | 18      | 18 (100%)       | N/A          | ✅ PASS |
+| `MeasureReport` | 1,080   | 1,080 (100%)    | 1,080 (100%) | ✅ PASS |
 
 All 1,080 MeasureReport resources:
+
 - Passed the HL7 R4 structural schema validation (required fields present, correct data types, valid resource structure).
 - Passed the mathematical consistency audit (calculated coverage % matched `measureScoreQuantity` in all cases).
 - Correctly applied `DataAbsentReason` extension on all zero-count numerator populations.
@@ -596,18 +612,18 @@ All 1,080 MeasureReport resources:
 
 ### 7.1 Technology Stack
 
-| Component | Technology | Version |
-|---|---|---|
-| Data processing | Python, Pandas | 3.14, 2.x |
-| Schema validation | Pandera | latest |
-| FHIR resource generation | fhir.resources (Pydantic) | latest |
-| REST API | FastAPI + Uvicorn | latest |
-| Dashboard | Streamlit | latest |
-| Visualization | Plotly Express | latest |
-| IG authoring | FHIR Shorthand (FSH) | latest |
-| IG compilation | SUSHI | latest |
-| IG publishing | HL7 IG Publisher + GitHub Actions | latest |
-| Version control | Git + GitHub | — |
+| Component                | Technology                        | Version   |
+| ------------------------ | --------------------------------- | --------- |
+| Data processing          | Python, Pandas                    | 3.14, 2.x |
+| Schema validation        | Pandera                           | latest    |
+| FHIR resource generation | fhir.resources (Pydantic)         | latest    |
+| REST API                 | FastAPI + Uvicorn                 | latest    |
+| Dashboard                | Streamlit                         | latest    |
+| Visualization            | Plotly Express                    | latest    |
+| IG authoring             | FHIR Shorthand (FSH)              | latest    |
+| IG compilation           | SUSHI                             | latest    |
+| IG publishing            | HL7 IG Publisher + GitHub Actions | latest    |
+| Version control          | Git + GitHub                      | —         |
 
 ### 7.2 Project Structure
 
@@ -725,25 +741,25 @@ This project successfully designed, implemented, and validated an end-to-end pip
 
 ## 10. References {#references}
 
-1. HL7 International. (2019). *HL7 FHIR Release 4 — Measure Resource*. Retrieved from https://hl7.org/fhir/R4/measure.html
+1. HL7 International. (2019). _HL7 FHIR Release 4 — Measure Resource_. Retrieved from https://hl7.org/fhir/R4/measure.html
 
-2. HL7 International. (2019). *HL7 FHIR Release 4 — MeasureReport Resource*. Retrieved from https://hl7.org/fhir/R4/measurereport.html
+2. HL7 International. (2019). _HL7 FHIR Release 4 — MeasureReport Resource_. Retrieved from https://hl7.org/fhir/R4/measurereport.html
 
-3. HL7 International. (2019). *HL7 FHIR Release 4 — DataAbsentReason Extension*. Retrieved from https://hl7.org/fhir/R4/extension-data-absent-reason.html
+3. HL7 International. (2019). _HL7 FHIR Release 4 — DataAbsentReason Extension_. Retrieved from https://hl7.org/fhir/R4/extension-data-absent-reason.html
 
-4. University of Oslo, HISP Centre. (2023). *DHIS2 Documentation*. Retrieved from https://docs.dhis2.org/
+4. University of Oslo, HISP Centre. (2023). _DHIS2 Documentation_. Retrieved from https://docs.dhis2.org/
 
-5. World Health Organization. (2017). *Data Quality Review: A Toolkit for Facility Data Quality Assessment*. WHO Document WHO/HIS/SDS/2017.23.
+5. World Health Organization. (2017). _Data Quality Review: A Toolkit for Facility Data Quality Assessment_. WHO Document WHO/HIS/SDS/2017.23.
 
-6. Ministry of Health and Population, Nepal. (2023). *National Immunization Program Annual Report*. Government of Nepal.
+6. Ministry of Health and Population, Nepal. (2023). _National Immunization Program Annual Report_. Government of Nepal.
 
-7. FHIR Shorthand (FSH) Documentation. (2023). *SUSHI User Guide*. Retrieved from https://fshschool.org/
+7. FHIR Shorthand (FSH) Documentation. (2023). _SUSHI User Guide_. Retrieved from https://fshschool.org/
 
-8. Bosio, G., Reggi, L., & Casalini, M. (2022). *Leveraging FHIR for National Health Information Exchange: Lessons from Implementation*. Journal of Medical Internet Research, 24(4).
+8. Bosio, G., Reggi, L., & Casalini, M. (2022). _Leveraging FHIR for National Health Information Exchange: Lessons from Implementation_. Journal of Medical Internet Research, 24(4).
 
-9. Shakya, P., Bhusal, C. K., & Karmacharya, B. M. (2021). *Assessment of immunization data quality in DHIS2: A case study from Nepal*. Health Informatics Journal, 27(2).
+9. Shakya, P., Bhusal, C. K., & Karmacharya, B. M. (2021). _Assessment of immunization data quality in DHIS2: A case study from Nepal_. Health Informatics Journal, 27(2).
 
-10. HL7 International. (2023). *IG Publisher Documentation*. Retrieved from https://confluence.hl7.org/display/FHIR/IG+Publisher+Documentation
+10. HL7 International. (2023). _IG Publisher Documentation_. Retrieved from https://confluence.hl7.org/display/FHIR/IG+Publisher+Documentation
 
 ---
 
@@ -751,23 +767,23 @@ This project successfully designed, implemented, and validated an end-to-end pip
 
 ### Appendix A: Data Dictionary
 
-| Column | Description | Type | Missing |
-|---|---|---|---|
-| SN | Serial Number (row identifier) | int64 | 0 |
-| Fiscal Year | Nepali fiscal year (e.g., "2077/78") | str | 0 |
-| Month No. | Nepali month number (1–12) | int64 | 0 |
-| Month (EN) | English month name (e.g., "Shrawan") | str | 0 |
-| Month (NP) | Nepali Devanagari month name | str | 0 |
-| District | District name | str | 0 |
-| Province | Province name | str | 0 |
-| Dist. Code | District code | int64 | 0 |
-| BCG through MR 2nd | Vaccine dose counts (17 columns) | int64 | 0 each |
-| TCV (Col 19) | TCV dose count | float64 | 20 |
-| Surviving Infants (Annual) | Annual target population | int64 | 0 |
-| Surviving Infants (Monthly) | Monthly target population (denominator) | int64 | 0 |
-| Facilities Expected | Health facilities expected to report | int64 | 0 |
-| Facilities Reported | Health facilities that reported | float64 | 7 |
-| Facilities Not Reported | Health facilities that did not report | float64 | 7 |
+| Column                      | Description                             | Type    | Missing |
+| --------------------------- | --------------------------------------- | ------- | ------- |
+| SN                          | Serial Number (row identifier)          | int64   | 0       |
+| Fiscal Year                 | Nepali fiscal year (e.g., "2077/78")    | str     | 0       |
+| Month No.                   | Nepali month number (1–12)              | int64   | 0       |
+| Month (EN)                  | English month name (e.g., "Shrawan")    | str     | 0       |
+| Month (NP)                  | Nepali Devanagari month name            | str     | 0       |
+| District                    | District name                           | str     | 0       |
+| Province                    | Province name                           | str     | 0       |
+| Dist. Code                  | District code                           | int64   | 0       |
+| BCG through MR 2nd          | Vaccine dose counts (17 columns)        | int64   | 0 each  |
+| TCV (Col 19)                | TCV dose count                          | float64 | 20      |
+| Surviving Infants (Annual)  | Annual target population                | int64   | 0       |
+| Surviving Infants (Monthly) | Monthly target population (denominator) | int64   | 0       |
+| Facilities Expected         | Health facilities expected to report    | int64   | 0       |
+| Facilities Reported         | Health facilities that reported         | float64 | 7       |
+| Facilities Not Reported     | Health facilities that did not report   | float64 | 7       |
 
 ### Appendix B: FHIR Validation Summary
 
@@ -818,7 +834,9 @@ Status: PASS
     {
       "population": [
         {
-          "code": { "coding": [{ "system": "...", "code": "initial-population" }] },
+          "code": {
+            "coding": [{ "system": "...", "code": "initial-population" }]
+          },
           "count": 448
         },
         {
@@ -838,19 +856,20 @@ Status: PASS
 
 ### Appendix D: API Endpoint Reference
 
-| Endpoint | Method | Response | Description |
-|---|---|---|---|
-| `/` | GET | JSON | Health check |
-| `/fhir/Measure` | GET | FHIR Bundle | All 18 Measure blueprints |
-| `/fhir/Measure/{id}` | GET | FHIR Measure | Single Measure (e.g., `measure-bcg`) |
-| `/fhir/MeasureReport` | GET | FHIR Bundle | All 1,080 MeasureReports |
-| `/fhir/MeasureReport/{id}` | GET | FHIR MeasureReport | Single MeasureReport (e.g., `measure-bcg-row-1`) |
+| Endpoint                   | Method | Response           | Description                                      |
+| -------------------------- | ------ | ------------------ | ------------------------------------------------ |
+| `/`                        | GET    | JSON               | Health check                                     |
+| `/fhir/Measure`            | GET    | FHIR Bundle        | All 18 Measure blueprints                        |
+| `/fhir/Measure/{id}`       | GET    | FHIR Measure       | Single Measure (e.g., `measure-bcg`)             |
+| `/fhir/MeasureReport`      | GET    | FHIR Bundle        | All 1,080 MeasureReports                         |
+| `/fhir/MeasureReport/{id}` | GET    | FHIR MeasureReport | Single MeasureReport (e.g., `measure-bcg-row-1`) |
 
 ### Appendix E: Published FHIR Implementation Guide
 
 **URL:** [https://saurav8989.github.io/Project/](https://saurav8989.github.io/Project/)
 
 The published IG includes:
+
 - StructureDefinition for `NepalImmunizationMeasure` profile
 - StructureDefinition for `NepalImmunizationMeasureReport` profile
 - Extension definition for `nepali-fiscal-period`
@@ -861,5 +880,5 @@ The published IG includes:
 
 ---
 
-*Submitted in partial fulfillment of the requirements for the degree of Master of Health Informatics*  
-*May 2026*
+_Submitted in partial fulfillment of the requirements for the degree of Master of Health Informatics_  
+_May 2026_
