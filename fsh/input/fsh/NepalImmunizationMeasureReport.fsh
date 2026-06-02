@@ -18,6 +18,9 @@ Description: "A strict profile on the MeasureReport resource to enforce constrai
 * period 1..1
 * period.extension contains NepaliFiscalPeriod named nepaliFiscalPeriod 1..1
 
+// Enforce the Facility Reporting Status extension at the root
+* extension contains FacilityReportingStatus named facilityReportingStatus 1..1
+
 // Enforce that the reported populations map to the Numerator and Denominator
 * group 1..*
 * group.population ^slicing.discriminator.type = #value

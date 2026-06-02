@@ -55,6 +55,11 @@ Usage: #example
 * period.extension[nepaliFiscalPeriod].extension[monthNepali].valueString = "साउन"
 * period.extension[nepaliFiscalPeriod].extension[district].valueString = "Kavrepalanchok"
 
+// The Facility Reporting Status extension at the root
+* extension[facilityReportingStatus].extension[expected].valueInteger = 161
+* extension[facilityReportingStatus].extension[reported].valueInteger = 139
+* extension[facilityReportingStatus].extension[notReported].valueInteger = 22
+
 // The Group containing the population data
 * group[0].population[numerator].code = http://terminology.hl7.org/CodeSystem/measure-population#numerator
 * group[0].population[numerator].count = 540
