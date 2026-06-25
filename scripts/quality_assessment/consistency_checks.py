@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import seaborn as sns
+# pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
 from pathlib import Path
 

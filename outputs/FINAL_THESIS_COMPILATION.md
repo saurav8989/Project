@@ -864,21 +864,269 @@ Status: PASS
 | `/fhir/MeasureReport`      | GET    | FHIR Bundle        | All 1,080 MeasureReports                         |
 | `/fhir/MeasureReport/{id}` | GET    | FHIR MeasureReport | Single MeasureReport (e.g., `measure-bcg-row-1`) |
 
-### Appendix E: Published FHIR Implementation Guide
+### Appendix E: FHIR Implementation Guide (FSH Specifications)
 
-**URL:** [https://saurav8989.github.io/Project/](https://saurav8989.github.io/Project/)
+To formalize the semantic mapping rules and enable validation of Nepalese immunization aggregate data, a custom FHIR Implementation Guide (IG) was authored using FHIR Shorthand (FSH) and compiled using the SUSHI toolchain.
 
-The published IG includes:
+**Canonical URL:** [https://saurav8989.github.io/Project/](https://saurav8989.github.io/Project/)
 
-- StructureDefinition for `NepalImmunizationMeasure` profile
-- StructureDefinition for `NepalImmunizationMeasureReport` profile
-- Extension definition for `nepali-fiscal-period`
-- CodeSystem: `VaccineIndicators` (18 codes)
-- ValueSet: `VaccineIndicatorsVS`
-- Machine-readable JSON StructureDefinition artifacts
-- Human-readable narrative pages
+#### E.1 Scaffolding and Environment Configuration
+
+The FSH project directory structure is scaffolded as follows:
+- `fsh/sushi-config.yaml`: Dictates the IG metadata, canonical base URL (`http://mohp.gov.np/fhir`), R4 version (4.0.1), and dependency configurations (e.g. `hl7.fhir.uv.extensions.r4` pinned to version `5.1.0`).
+- `fsh/ig.ini`: Directs the HL7 IG Publisher to the config file and maps the base layout template (`fhir.base.template`).
+
+#### E.2 Custom Profiles (FSH Definitions)
+
+##### E.2.1 Nepal DHIS2 Immunization Measure Profile
+Defines proportion-based scoring logic and restricts vaccine topics to our custom value set.
+
+```fsh
+Profile: NepalImmunizationMeasure
+Parent: Measure
+Id: nepal-immunization-measure
+Title: "Nepal DHIS2 Immunization Measure"
+Description: "A strict profile on the Measure resource to define public health immunization indicators in Nepal."
+
+// Enforce that this is a proportion measure (Numerator / Denominator)
+* scoring = http://terminology.hl7.org/CodeSystem/measure-scoring#proportion
+
+// Enforce that the measure topic comes from our custom Vaccine Vocabulary
+* topic from nepal-vaccine-indicator-vs (extensible)
+
+// Enforce that there must be exactly one Numerator and exactly one Denominator
+* group 1..*
+* group.population ^slicing.discriminator.type = #value
+* group.population ^slicing.discriminator.path = "code.coding.code"
+* group.population ^slicing.rules = #open
+* group.population contains
+    numerator 1..1 and
+    denominator 1..1
+
+* group.population[numerator].code = http://terminology.hl7.org/CodeSystem/measure-population#numerator
+* group.population[denominator].code = http://terminology.hl7.org/CodeSystem/measure-population#denominator
+```
+
+##### E.2.2 Nepal DHIS2 Immunization MeasureReport Profile
+Imposes regional reporting rules on the evaluative payloads.
+
+```fsh
+Profile: NepalImmunizationMeasureReport
+Parent: MeasureReport
+Id: nepal-immunization-measure-report
+Title: "Nepal DHIS2 Immunization MeasureReport"
+Description: "A strict profile on the MeasureReport resource to enforce constraints for Nepal's aggregate DHIS2 immunization reporting."
+
+* measure ^type[0].targetProfile = "http://mohp.gov.np/fhir/StructureDefinition/nepal-immunization-measure"
+* type = #summary
+* subject 1..1
+* subject only Reference(Location)
+* period 1..1
+* period.extension contains NepaliFiscalPeriod named nepaliFiscalPeriod 1..1
+* extension contains FacilityReportingStatus named facilityReportingStatus 1..1
+
+* group 1..*
+* group.population ^slicing.discriminator.type = #value
+* group.population ^slicing.discriminator.path = "code.coding.code"
+* group.population ^slicing.rules = #open
+* group.population contains
+    numerator 1..1 and
+    denominator 1..1
+```
+
+#### E.3 Custom Extensions (FSH Definitions)
+
+##### E.3.1 Nepali Fiscal Period Extension
+Enables embedding Bikram Sambat (BS) fiscal context within standard FHIR `Period` constraints.
+
+```fsh
+Extension: NepaliFiscalPeriod
+Id: nepali-fiscal-period
+Title: "Nepali Fiscal Period"
+Description: "An extension to capture the original Bikram Sambat (Nepali) fiscal year and month string exactly as extracted from DHIS2."
+* ^context[0].type = #element
+* ^context[0].expression = "MeasureReport.period"
+* extension contains
+    fiscalYear 1..1 and
+    monthEnglish 1..1 and
+    monthNepali 1..1 and
+    district 1..1
+
+* extension[fiscalYear].value[x] only string
+* extension[monthEnglish].value[x] only string
+* extension[monthEnglish].valueString from BikramSambatMonthsVS (required)
+* extension[monthNepali].value[x] only string
+* extension[district].value[x] only string
+```
+
+##### E.3.2 Facility Reporting Status Extension
+Enables root-level tracking of facility completeness metadata for aggregate report auditing.
+
+```fsh
+Extension: FacilityReportingStatus
+Id: facility-reporting-status
+Title: "Facility Reporting Status"
+Description: "An extension to capture the administrative reporting metadata (completeness) of health facilities contributing to an aggregate MeasureReport."
+* ^context[0].type = #element
+* ^context[0].expression = "MeasureReport"
+* extension contains
+    expected 1..1 and
+    reported 1..1 and
+    notReported 1..1
+
+* extension[expected].value[x] only integer
+* extension[reported].value[x] only integer
+* extension[notReported].value[x] only integer
+```
+
+#### E.4 Terminology and Vocabularies
+
+##### E.4.1 Vaccine Indicator Terminology
+Restricts indicators to the 18 specific vaccine doses aggregated in DHIS2.
+
+```fsh
+CodeSystem: NepalVaccineIndicatorCS
+Id: nepal-vaccine-indicator-cs
+Title: "Nepal DHIS2 Vaccine Indicator Code System"
+* ^caseSensitive = true
+* #BCG "BCG Dose"
+* #Rota_1 "Rota 1st Dose"
+* #Rota_2 "Rota 2nd Dose"
+* #OPV_1 "OPV 1st Dose"
+* #OPV_2 "OPV 2nd Dose"
+* #OPV_3 "OPV 3rd Dose"
+* #fIPV_1 "fIPV 1st Dose"
+* #fIPV_2 "fIPV 2nd Dose"
+* #PCV_1 "PCV 1st Dose"
+* #PCV_2 "PCV 2nd Dose"
+* #PCV_3 "PCV 3rd Dose"
+* #Penta_1 "Penta 1st Dose"
+* #Penta_2 "Penta 2nd Dose"
+* #Penta_3 "Penta 3rd Dose"
+* #MR_1 "MR 1st Dose"
+* #MR_2 "MR 2nd Dose"
+* #JE "JE Dose"
+* #TCV "TCV Dose"
+
+ValueSet: NepalVaccineIndicatorVS
+Id: nepal-vaccine-indicator-vs
+Title: "Nepal DHIS2 Vaccine Indicator Value Set"
+* include codes from system NepalVaccineIndicatorCS
+```
+
+##### E.4.2 Nepali Month Terminology
+Enforces rigorous validation of Bikram Sambat months using standard DHIS2 spelling strings.
+
+```fsh
+CodeSystem: BikramSambatMonthsCS
+Id: bs-months-cs
+Title: "Bikram Sambat Months CodeSystem"
+* #Baisakh "Baisakh (वैशाख)"
+* #Jestha "Jestha (जेठ)"
+* #Ashadh "Ashadh (असार)"
+* #Shrawan "Shrawan (साउन)"
+* #Bhadra "Bhadra (भदौ)"
+* #Ashwin "Ashwin (असोज)"
+* #Kartik "Kartik (कात्तिक)"
+* #Mangsir "Mangsir (मंसिर)"
+* #Poush "Poush (पुष)"
+* #Magh "Magh (माघ)"
+* #Falgun "Falgun (फागुन)"
+* #Chaitra "Chaitra (चैत)"
+
+ValueSet: BikramSambatMonthsVS
+Id: bs-months-vs
+Title: "Bikram Sambat Months ValueSet"
+* include codes from system BikramSambatMonthsCS
+```
+
+#### E.5 SUSHI Compilation & CI/CD Pipeline Engineering
+
+To establish a self-healing deployment pipeline, a GitHub Actions workflow (`.github/workflows/fhir-ig.yml`) was written to automate publication on GitHub Pages. To bypass dependency lookup conflicts in the HL7 IG Publisher, the workflow executes a custom CLI redirection script:
+1. Compiles the FSH source into JSON StructureDefinitions: `sushi .`
+2. Temporarily hides the `sushi-config.yaml` configuration file.
+3. Invokes the Java-based HL7 Publisher with the `-no-sushi` parameter, forcing it to utilize pre-compiled outputs without double-downloading dependencies.
+4. Restores `sushi-config.yaml` and triggers Jekyll static site compilation to render static HTML pages.
+
+---
+
+### Appendix F: Clinical Analytics Dashboard
+
+To validate that standardizing data in FHIR preserves 100% of the analytical potential while enforcing interoperability rules, an interactive web dashboard was constructed.
+
+#### F.1 System Architecture and Data Integration Flow
+
+The dashboard is engineered with a strict API-first design. It does not read database or CSV files directly; instead, it consumes payloads served by the FastAPI REST server.
+
+```mermaid
+graph TD
+    A[Cleaned DHIS2 CSV] -->|Secondary Source| G[Streamlit Dashboard]
+    B[FHIR JSON Payloads] -->|API Source| C[FastAPI REST Server]
+    C -->|HTTP GET /fhir/MeasureReport| G
+    G -->|Traverse Custom Extensions| D[Extension Parser]
+    D -->|Extract DataAbsentReason| E[Completeness Auditing]
+    G -->|Pandas & Plotly| F[KPI & Chart Rendering]
+```
+
+#### F.2 Key Visualizations and Features
+
+1. **Macro-Level Command Center (Landing Page):**
+   - **4 System KPIs:** Total records audited (1,080), total coverage outliers, total logical consistency violations, and system-wide average dropout rate (%).
+   - **Coverage Trend Line Chart:** Chronological plot of average coverage across all indicators over 60 months.
+   - **Data Quality Donut Chart:** Visual breakdown of clean data, coverage outliers (>100%), and missing records (detected via `DataAbsentReason`).
+   - **System-wide Retention Comparison:** Bar chart mapping 5-year aggregate dropout rates across all multi-dose vaccine families.
+
+2. **Micro-Level Vaccine Drill-Down Page:**
+   - Sidebar filters for selecting Vaccine Family (e.g. Penta, OPV) and Fiscal Year.
+   - Dynamic UI adaptation showing multi-dose dose volume retention side-by-side with coverage lines.
+   - **Dropout & Retention Line Chart:** Maps longitudinal dropout rate (Dose 1 vs. Final Dose) across selected months to evaluate health system performance over time.
+   - **Real-time DQA Audit tables:** Direct display of anomalous coverage records (>100%) and logical violations (e.g. Dose 2 count > Dose 1 count) occurring under current filters.
+
+#### F.3 Core FHIR Extraction Logic
+
+The following Python snippet in `scripts/api/dashboard.py` parses the custom extensions and extracts metadata directly from the FHIR JSON structure:
+
+```python
+# Extract Custom Extensions (Fiscal Year, Month, Facility Reporting)
+fiscal_year = "Unknown"
+month_nepali = "Unknown"
+fac_expected = 0
+fac_reported = 0
+fac_not_reported = 0
+
+extensions = resource.get("extension", [])
+for ext in extensions:
+    if ext.get("url") == "http://example.org/fhir/StructureDefinition/nepali-fiscal-period":
+        sub_exts = ext.get("extension", [])
+        for sub in sub_exts:
+            if sub.get("url") == "fiscalYear":
+                fiscal_year = sub.get("valueString", "Unknown")
+            elif sub.get("url") == "monthEnglish":
+                month_nepali = sub.get("valueString", "Unknown")
+    
+    elif ext.get("url") == "http://mohp.gov.np/fhir/StructureDefinition/facility-reporting-status":
+        sub_exts = ext.get("extension", [])
+        for sub in sub_exts:
+            if sub.get("url") == "expected":
+                fac_expected = sub.get("valueInteger", 0)
+            elif sub.get("url") == "reported":
+                fac_reported = sub.get("valueInteger", 0)
+            elif sub.get("url") == "notReported":
+                fac_not_reported = sub.get("valueInteger", 0)
+```
+
+Additionally, `DataAbsentReason` validation is handled as follows:
+```python
+# Check for missing data explicitly via FHIR extension on numerator
+for ext in population.get("extension", []):
+    if ext.get("url") == "http://hl7.org/fhir/StructureDefinition/data-absent-reason":
+        is_absent = True
+```
+
+Performance is optimized using `@st.cache_data(ttl=600)` to cache API query results for 10 minutes, preventing duplicate server requests on interactive widget clicks.
 
 ---
 
 _Submitted in partial fulfillment of the requirements for the degree of Master of Health Informatics_  
 _May 2026_
+
