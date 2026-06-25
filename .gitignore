@@ -43,3 +43,6 @@ fsh-generated/
 # Ignored large binaries
 *.jar
 *.zip
+
+# Thesis implementation plan
+thesis/thesis_implementation_plan.txt

@@ -154,3 +154,10 @@ webencodings==0.5.1
 websocket-client==1.9.0
 websockets==16.0
 widgetsnbextension==4.0.15
+
+# Master's Thesis Analytics & Modeling Dependencies
+scikit-learn>=1.2.0
+statsmodels>=0.13.5
+xgboost>=1.7.0
+prophet>=1.1.0
+pmdarima>=2.0.0
