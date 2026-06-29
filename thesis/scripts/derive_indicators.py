@@ -76,16 +76,132 @@ def calculate_raw_indicators(df):
         
     return result_df
 
+def parse_fhir_bundle(bundle_path):
+    """
+    Step 2.2: Parses the master FHIR Bundle resource and extracts
+    individual indicator records.
+    """
+    with open(bundle_path, 'r') as f:
+        bundle = json.load(f)
+        
+    records = []
+    
+    # Mapping FHIR Measure IDs to standard Column Keys
+    measure_mapping = {
+        'measure-bcg': 'BCG',
+        'measure-rota1': 'Rota_1',
+        'measure-rota2': 'Rota_2',
+        'measure-opv1': 'OPV_1',
+        'measure-opv2': 'OPV_2',
+        'measure-opv3': 'OPV_3',
+        'measure-fipv1': 'fIPV_1',
+        'measure-fipv2': 'fIPV_2',
+        'measure-pcv1': 'PCV_1',
+        'measure-pcv2': 'PCV_2',
+        'measure-pcv3': 'PCV_3',
+        'measure-penta1': 'Penta_1',
+        'measure-penta2': 'Penta_2',
+        'measure-penta3': 'Penta_3',
+        'measure-mr1': 'MR_1',
+        'measure-mr2': 'MR_2',
+        'measure-je': 'JE',
+        'measure-tcv': 'TCV'
+    }
+    
+    entries = bundle.get('entry', [])
+    print(f"Total Bundle entries found: {len(entries)}")
+    
+    for idx, entry in enumerate(entries):
+        resource = entry.get('resource', {})
+        if resource.get('resourceType') != 'MeasureReport':
+            continue
+            
+        # Parse Measure ID
+        measure_ref = resource.get('measure', '')
+        measure_id = measure_ref.split('/')[-1]
+        vaccine_key = measure_mapping.get(measure_id, measure_id)
+        
+        # Parse Extensions
+        fiscal_year = None
+        month_en = None
+        month_np = None
+        district = None
+        
+        fac_expected = None
+        fac_reported = None
+        fac_not_reported = None
+        
+        for ext in resource.get('extension', []):
+            ext_url = ext.get('url')
+            if ext_url == "http://example.org/fhir/StructureDefinition/nepali-fiscal-period":
+                for sub in ext.get('extension', []):
+                    if sub.get('url') == 'fiscalYear':
+                        fiscal_year = sub.get('valueString')
+                    elif sub.get('url') == 'monthEnglish':
+                        month_en = sub.get('valueString')
+                    elif sub.get('url') == 'monthNepali':
+                        month_np = sub.get('valueString')
+                    elif sub.get('url') == 'district':
+                        district = sub.get('valueString')
+            elif ext_url == "http://mohp.gov.np/fhir/StructureDefinition/facility-reporting-status":
+                for sub in ext.get('extension', []):
+                    if sub.get('url') == 'expected':
+                        fac_expected = sub.get('valueInteger')
+                    elif sub.get('url') == 'reported':
+                        fac_reported = sub.get('valueInteger')
+                    elif sub.get('url') == 'notReported':
+                        fac_not_reported = sub.get('valueInteger')
+                        
+        # Parse Population counts
+        denom_count = None
+        num_count = None
+        is_absent = False
+        absent_reason = None
+        
+        for group in resource.get('group', []):
+            for pop in group.get('population', []):
+                pop_code = pop.get('code', {}).get('coding', [{}])[0].get('code')
+                if pop_code == 'denominator':
+                    denom_count = pop.get('count')
+                elif pop_code == 'numerator':
+                    num_count = pop.get('count')
+                    # Check for data absent reason
+                    for sub_ext in pop.get('extension', []):
+                        if sub_ext.get('url') == "http://hl7.org/fhir/StructureDefinition/data-absent-reason":
+                            is_absent = True
+                            absent_reason = sub_ext.get('valueCode')
+                            
+        records.append({
+            'Fiscal Year': fiscal_year,
+            'Month (EN)': month_en,
+            'Month (NP)': month_np,
+            'District': district,
+            'Vaccine_Key': vaccine_key,
+            'Doses': num_count,
+            'Is_Absent': is_absent,
+            'Absent_Reason': absent_reason,
+            'Surviving Infants (Monthly)': denom_count,
+            'Facilities Expected': fac_expected,
+            'Facilities Reported': fac_reported,
+            'Facilities Not Reported': fac_not_reported
+        })
+        
+    parsed_df = pd.DataFrame(records)
+    return parsed_df
+
 if __name__ == "__main__":
+    import json
     print("=" * 60)
-    print("PHASE 2 - STEP 2.1: RAW INDICATOR EXTRACTION")
+    print("PHASE 2 - STEPS 2.1 & 2.2: INDICATOR EXTRACTION")
     print("=" * 60)
     
     # Define paths
     raw_data_path = project_root / "data" / "raw" / "Data.xlsx"
+    fhir_bundle_path = project_root / "data" / "fhir" / "master_measurereports_bundle.json"
     thesis_output_dir = project_root / "thesis" / "outputs" / "tables"
     thesis_output_dir.mkdir(parents=True, exist_ok=True)
     
+    # Step 2.1: Process Raw Data
     if raw_data_path.exists():
         print(f"Loading raw dataset from: {raw_data_path}")
         raw_df = load_dhis2_data(str(raw_data_path))
@@ -96,10 +212,23 @@ if __name__ == "__main__":
         # Save output
         raw_output_path = thesis_output_dir / "Indicators_Raw.csv"
         raw_indicators.to_csv(raw_output_path, index=False)
-        print(f"\n✅ Successfully saved Raw Indicators to: {raw_output_path}")
+        print(f"✅ Successfully saved Raw Indicators to: {raw_output_path}")
         print(f"Shape: {raw_indicators.shape} (Rows: {raw_indicators.shape[0]}, Columns: {raw_indicators.shape[1]})")
     else:
         print(f"❌ Raw dataset not found at: {raw_data_path}")
         
-    print("\n✅ STEP 2.1 COMPLETE")
+    print("-" * 60)
+    
+    # Step 2.2: Load & Parse FHIR Bundle Data
+    if fhir_bundle_path.exists():
+        print(f"Loading master FHIR bundle from: {fhir_bundle_path}")
+        fhir_parsed_df = parse_fhir_bundle(str(fhir_bundle_path))
+        print("✅ FHIR Bundle successfully parsed!")
+        print(f"Parsed Shape: {fhir_parsed_df.shape} (Rows/Entries: {fhir_parsed_df.shape[0]}, Columns: {fhir_parsed_df.shape[1]})")
+        print("\nSample of parsed FHIR records:")
+        print(fhir_parsed_df.head(5).to_string(index=False))
+    else:
+        print(f"❌ FHIR bundle file not found at: {fhir_bundle_path}")
+        
+    print("\n✅ STEP 2.2 COMPLETE")
     print("=" * 60)
