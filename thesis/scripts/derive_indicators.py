@@ -238,10 +238,39 @@ def assemble_pivoted_dataframe(parsed_df):
     df_pivot = df_pivot[desired_cols + vaccine_keys]
     return df_pivot
 
+def calculate_cleaned_coverage(df_wide):
+    """
+    Step 2.4: Computes the monthly coverage rate for all 18 indicators
+    on the pivoted FHIR DataFrame.
+    """
+    df = df_wide.copy()
+    target_pop = df['Surviving Infants (Monthly)']
+    
+    vaccine_keys = [
+        'BCG', 'Rota_1', 'Rota_2', 'OPV_1', 'OPV_2', 'OPV_3',
+        'fIPV_1', 'fIPV_2', 'PCV_1', 'PCV_2', 'PCV_3', 
+        'Penta_1', 'Penta_2', 'Penta_3', 'MR_1', 'MR_2', 'JE', 'TCV'
+    ]
+    
+    for key in vaccine_keys:
+        # Rename original count column to f'{key}_Doses'
+        df = df.rename(columns={key: f'{key}_Doses'})
+        doses = df[f'{key}_Doses'].copy()
+        
+        # Calculate coverage (un-capped for Step 2.4; capping will happen in Step 2.6)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            cov = np.where(target_pop > 0, (doses / target_pop) * 100, 0.0)
+            # Replace NaNs with 0.0 (e.g. for TCV when absent)
+            cov = np.nan_to_num(cov, nan=0.0)
+            
+        df[f'{key}_Coverage'] = cov
+        
+    return df
+
 if __name__ == "__main__":
     import json
     print("=" * 60)
-    print("PHASE 2 - STEPS 2.1 to 2.3: INDICATOR EXTRACTION")
+    print("PHASE 2 - STEPS 2.1 to 2.4: INDICATOR EXTRACTION")
     print("=" * 60)
     
     # Define paths
@@ -278,12 +307,21 @@ if __name__ == "__main__":
         print("Assembling pivoted wide-format DataFrame...")
         fhir_wide_df = assemble_pivoted_dataframe(fhir_parsed_df)
         print("✅ FHIR DataFrame successfully pivoted!")
-        print(f"Pivoted Shape: {fhir_wide_df.shape} (Rows: {fhir_wide_df.shape[0]}, Columns: {fhir_wide_df.shape[1]})")
-        print("\nSample of wide pivoted FHIR DataFrame (showing month details and some vaccines):")
-        display_cols = ['SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 'BCG', 'Penta_1', 'TCV']
-        print(fhir_wide_df[display_cols].head(5).to_string(index=False))
+        
+        # Step 2.4: Compute Cleaned Coverage
+        print("Computing coverage rates on pivoted FHIR DataFrame...")
+        fhir_cov_df = calculate_cleaned_coverage(fhir_wide_df)
+        print("✅ Coverage rates successfully computed!")
+        print(f"Shape after coverage: {fhir_cov_df.shape} (Rows: {fhir_cov_df.shape[0]}, Columns: {fhir_cov_df.shape[1]})")
+        print("\nSample of computed coverage rates (showing doses and coverage side-by-side):")
+        display_cols = [
+            'SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 
+            'BCG_Doses', 'BCG_Coverage', 
+            'Penta_1_Doses', 'Penta_1_Coverage'
+        ]
+        print(fhir_cov_df[display_cols].head(5).to_string(index=False))
     else:
         print(f"❌ FHIR bundle file not found at: {fhir_bundle_path}")
         
-    print("\n✅ STEP 2.3 COMPLETE")
+    print("\n✅ STEP 2.4 COMPLETE")
     print("=" * 60)
