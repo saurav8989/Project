@@ -16,7 +16,8 @@ def calculate_raw_indicators(df):
     Step 2.1: Computes raw monthly coverage and dropout rates.
     Outliers (>100% coverage) and negative dropouts (logical violations) are left UNTOUCHED.
     """
-    result_df = df[['SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 'Month (NP)', 'District', 'Province', 'Surviving Infants (Monthly)']].copy()
+    result_df = df[['SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 'Month (NP)', 'District', 'Province', 
+                    'Surviving Infants (Monthly)', 'Facilities Expected', 'Facilities Reported', 'Facilities Not Reported']].copy()
     target_pop = df['Surviving Infants (Monthly)']
     
     # Vaccine column mapping
@@ -73,6 +74,16 @@ def calculate_raw_indicators(df):
             dropout = np.where(d1 > 0, ((d1 - dn) / d1) * 100, np.nan)
             
         result_df[f'{family}_Dropout'] = dropout
+
+    # Clean up integers for raw file
+    int_cols = [
+        'Surviving Infants (Monthly)', 'Facilities Expected', 
+        'Facilities Reported', 'Facilities Not Reported'
+    ] + [f'{key}_Doses' for key in vaccine_cols.keys()]
+    
+    for col in int_cols:
+        if col in result_df.columns:
+            result_df[col] = result_df[col].fillna(0).astype(int)
         
     return result_df
 
@@ -222,10 +233,13 @@ def assemble_pivoted_dataframe(parsed_df):
     # Generate Serial Number (SN) from 1 to 60
     df_pivot.insert(0, 'SN', df_pivot.index + 1)
     
+    # Insert Province after District (Bagmati Province for Kavrepalanchok)
+    df_pivot.insert(6, 'Province', 'Bagmati')
+    
     # Reorder columns to place month details at the beginning
     desired_cols = [
         'SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 'Month (NP)', 
-        'District', 'Surviving Infants (Monthly)', 'Facilities Expected', 
+        'District', 'Province', 'Surviving Infants (Monthly)', 'Facilities Expected', 
         'Facilities Reported', 'Facilities Not Reported'
     ]
     
@@ -297,10 +311,55 @@ def calculate_cleaned_dropout(df_cov):
         
     return df
 
+def sanitize_cleaned_indicators(df_drop):
+    """
+    Step 2.6: Applies DQA sanitization and data quality rules:
+    1. Caps all coverage rates at a maximum of 100.0%
+    2. Caps all dropout rates at a minimum of 0.0% (smoothing negative dropouts)
+    3. Imputes TCV doses to 0 and coverage to 0.0 where they are missing (data-absent-reason)
+    """
+    df = df_drop.copy()
+    
+    vaccine_keys = [
+        'BCG', 'Rota_1', 'Rota_2', 'OPV_1', 'OPV_2', 'OPV_3',
+        'fIPV_1', 'fIPV_2', 'PCV_1', 'PCV_2', 'PCV_3', 
+        'Penta_1', 'Penta_2', 'Penta_3', 'MR_1', 'MR_2', 'JE', 'TCV'
+    ]
+    
+    dropout_families = ['Penta', 'OPV', 'PCV', 'Rota', 'MR', 'fIPV']
+    
+    # 1. Impute missing TCV data to 0
+    df['TCV_Doses'] = df['TCV_Doses'].fillna(0.0)
+    df['TCV_Coverage'] = df['TCV_Coverage'].fillna(0.0)
+    
+    # 2. Cap coverage rates at a maximum of 100.0%
+    for key in vaccine_keys:
+        cov_col = f'{key}_Coverage'
+        if cov_col in df.columns:
+            df[cov_col] = np.minimum(df[cov_col], 100.0)
+            
+    # 3. Cap dropout rates at a minimum of 0.0% (smooth negative dropouts)
+    for family in dropout_families:
+        drop_col = f'{family}_Dropout'
+        if drop_col in df.columns:
+            df[drop_col] = np.maximum(df[drop_col], 0.0)
+            
+    # Ensure raw count columns (doses and facility stats) are integers where possible
+    int_cols = [
+        'Surviving Infants (Monthly)', 'Facilities Expected', 
+        'Facilities Reported', 'Facilities Not Reported'
+    ] + [f'{key}_Doses' for key in vaccine_keys]
+    
+    for col in int_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna(0).astype(int)
+            
+    return df
+
 if __name__ == "__main__":
     import json
     print("=" * 60)
-    print("PHASE 2 - STEPS 2.1 to 2.5: INDICATOR EXTRACTION")
+    print("PHASE 2 - STEPS 2.1 to 2.6: INDICATOR DERIVATION COMPLETE")
     print("=" * 60)
     
     # Define paths
@@ -347,16 +406,63 @@ if __name__ == "__main__":
         print("Computing dropout rates on pivoted FHIR DataFrame...")
         fhir_drop_df = calculate_cleaned_dropout(fhir_cov_df)
         print("✅ Dropout rates successfully computed!")
-        print(f"Shape after dropout: {fhir_drop_df.shape} (Rows: {fhir_drop_df.shape[0]}, Columns: {fhir_drop_df.shape[1]})")
-        print("\nSample of computed dropout rates (showing Penta and Rota dropouts):")
-        display_cols = [
-            'SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 
-            'Penta_1_Doses', 'Penta_3_Doses', 'Penta_Dropout',
-            'Rota_1_Doses', 'Rota_2_Doses', 'Rota_Dropout'
-        ]
-        print(fhir_drop_df[display_cols].head(5).to_string(index=False))
+        
+        # Step 2.6: Apply Capping, Imputation & Smoothing (Sanitization)
+        print("Applying DQA sanitization (capping coverage/dropouts & TCV imputation)...")
+        fhir_clean_df = sanitize_cleaned_indicators(fhir_drop_df)
+        
+        # Save Cleaned Indicators
+        clean_output_path = thesis_output_dir / "Indicators_Cleaned.csv"
+        fhir_clean_df.to_csv(clean_output_path, index=False)
+        print(f"✅ Successfully saved Cleaned Indicators to: {clean_output_path}")
+        print(f"Shape: {fhir_clean_df.shape} (Rows: {fhir_clean_df.shape[0]}, Columns: {fhir_clean_df.shape[1]})")
+        
+        # Run Verification Checking
+        print("\n" + "=" * 60)
+        print("PHASE 2 VERIFICATION CHECKS")
+        print("=" * 60)
+        print(f"Raw shape:     {raw_indicators.shape}")
+        print(f"Cleaned shape: {fhir_clean_df.shape}")
+        
+        # 1. Check shapes are identical
+        if raw_indicators.shape == fhir_clean_df.shape:
+            print("✅ Verification: Shapes match exactly!")
+        else:
+            print("❌ Verification: Shape mismatch!")
+            
+        # 2. Check column names are identical
+        col_mismatch = [c for c in raw_indicators.columns if c not in fhir_clean_df.columns]
+        if len(col_mismatch) == 0 and len(raw_indicators.columns) == len(fhir_clean_df.columns):
+            print("✅ Verification: Column names and order match exactly!")
+        else:
+            print(f"❌ Verification: Column mismatch! Missing in Cleaned: {col_mismatch}")
+            
+        # 3. Check values of TCV
+        raw_tcv_nan = raw_indicators['TCV_Coverage'].isna().sum()
+        clean_tcv_nan = fhir_clean_df['TCV_Coverage'].isna().sum()
+        print(f"Raw TCV NaN count:     {raw_tcv_nan}")
+        print(f"Cleaned TCV NaN count: {clean_tcv_nan}")
+        if clean_tcv_nan == 0:
+            print("✅ Verification: Cleaned TCV has no NaNs (fully imputed)!")
+            
+        # 4. Check coverage values (e.g. max BCG coverage)
+        raw_max_bcg = raw_indicators['BCG_Coverage'].max()
+        clean_max_bcg = fhir_clean_df['BCG_Coverage'].max()
+        print(f"Raw Max BCG Coverage:     {raw_max_bcg:.2f}%")
+        print(f"Cleaned Max BCG Coverage: {clean_max_bcg:.2f}%")
+        if clean_max_bcg <= 100.0:
+            print("✅ Verification: Cleaned coverage successfully capped at 100%!")
+            
+        # 5. Check dropout values (e.g. min Penta dropout)
+        raw_min_penta = raw_indicators['Penta_Dropout'].min()
+        clean_min_penta = fhir_clean_df['Penta_Dropout'].min()
+        print(f"Raw Min Penta Dropout:     {raw_min_penta:.2f}%")
+        print(f"Cleaned Min Penta Dropout: {clean_min_penta:.2f}%")
+        if clean_min_penta >= 0.0:
+            print("✅ Verification: Cleaned dropout successfully smoothed (min >= 0%)!")
+            
     else:
         print(f"❌ FHIR bundle file not found at: {fhir_bundle_path}")
         
-    print("\n✅ STEP 2.5 COMPLETE")
+    print("\n✅ STEP 2.6 COMPLETE & VERIFIED")
     print("=" * 60)

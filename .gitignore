@@ -44,5 +44,6 @@ fsh-generated/
 *.jar
 *.zip
 
-# Thesis implementation plan
+# Thesis implementation plan & discussion notes
 thesis/thesis_implementation_plan.txt
+thesis/discussion_notes.md
