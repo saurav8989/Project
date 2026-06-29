@@ -13,6 +13,7 @@ logging.getLogger('prophet').setLevel(logging.WARNING)
 logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
 
 from statsmodels.tsa.stattools import adfuller
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 # Add project root to path for imports
 current_dir = Path(__file__).resolve().parent
@@ -102,6 +103,39 @@ def run_prophet_decomposition(df_input, indicator, output_dir):
     
     print(f"✅ Saved Prophet decomposition plot to: {plot_path}")
     return forecast
+
+def run_acf_pacf_analysis(df, indicator, output_dir):
+    """
+    Step 3.4: Plots ACF and PACF side-by-side up to 24 lags
+    to theoretically identify AR(p) and MA(q) terms.
+    """
+    print(f"Generating ACF/PACF plots for: {indicator}")
+    
+    # Extract series and drop NaNs
+    series = df[indicator].dropna()
+    
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    
+    # Plot ACF (lags=24)
+    plot_acf(series, lags=24, ax=axes[0], color='#1f77b4', vlines_kwargs={"colors": "#1f77b4"})
+    axes[0].set_title(f'Autocorrelation (ACF) - {indicator}', fontsize=10, fontweight='bold')
+    axes[0].grid(True, linestyle='--', alpha=0.5)
+    
+    # Plot PACF (lags=24)
+    plot_pacf(series, lags=24, ax=axes[1], color='#d62728', vlines_kwargs={"colors": "#d62728"}, method='ywm')
+    axes[1].set_title(f'Partial Autocorrelation (PACF) - {indicator}', fontsize=10, fontweight='bold')
+    axes[1].grid(True, linestyle='--', alpha=0.5)
+    
+    fig.suptitle(f"ACF / PACF Diagnostic Profiling - {indicator}", fontsize=12, fontweight='bold', y=1.05)
+    plt.tight_layout()
+    
+    # Save plot
+    clean_name = indicator.lower().replace(' ', '_')
+    plot_path = output_dir / f"acf_pacf_{clean_name}.png"
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Saved ACF/PACF plot to: {plot_path}")
 
 def run_adf_tests(raw_df, cleaned_df, output_table_dir):
     """
@@ -236,8 +270,14 @@ if __name__ == "__main__":
         # Step 3.3: Augmented Dickey-Fuller Tests
         print("\n--- Running ADF Stationarity Tests (Step 3.3) ---")
         run_adf_tests(df_raw, df_cleaned, tables_dir)
+        
+        # Step 3.4: Autocorrelation & Partial Autocorrelation Profiling
+        print("\n--- Running ACF/PACF Diagnostic Profiling (Step 3.4) ---")
+        for indicator in target_indicators:
+            if indicator in df_cleaned.columns:
+                run_acf_pacf_analysis(df_cleaned, indicator, figures_dir)
     else:
         print("❌ Dataset files not found. Make sure Phase 2 has been completed.")
         
-    print("\n✅ STEP 3.3 COMPLETE")
+    print("\n✅ STEP 3.4 COMPLETE")
     print("=" * 60)
