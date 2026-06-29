@@ -267,10 +267,40 @@ def calculate_cleaned_coverage(df_wide):
         
     return df
 
+def calculate_cleaned_dropout(df_cov):
+    """
+    Step 2.5: Computes the monthly dropout rate for all multi-dose vaccines
+    on the pivoted FHIR DataFrame.
+    """
+    df = df_cov.copy()
+    
+    dropout_definitions = {
+        'Penta': ('Penta_1_Doses', 'Penta_3_Doses'),
+        'OPV': ('OPV_1_Doses', 'OPV_3_Doses'),
+        'PCV': ('PCV_1_Doses', 'PCV_3_Doses'),
+        'Rota': ('Rota_1_Doses', 'Rota_2_Doses'),
+        'MR': ('MR_1_Doses', 'MR_2_Doses'),
+        'fIPV': ('fIPV_1_Doses', 'fIPV_2_Doses')
+    }
+    
+    for family, (dose1_col, dosen_col) in dropout_definitions.items():
+        d1 = df[dose1_col]
+        dn = df[dosen_col]
+        
+        # Calculate dropout percentage (un-capped for Step 2.5; capping at 0% will happen in Step 2.6)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            dropout = np.where(d1 > 0, ((d1 - dn) / d1) * 100, 0.0)
+            # Replace NaNs with 0.0
+            dropout = np.nan_to_num(dropout, nan=0.0)
+            
+        df[f'{family}_Dropout'] = dropout
+        
+    return df
+
 if __name__ == "__main__":
     import json
     print("=" * 60)
-    print("PHASE 2 - STEPS 2.1 to 2.4: INDICATOR EXTRACTION")
+    print("PHASE 2 - STEPS 2.1 to 2.5: INDICATOR EXTRACTION")
     print("=" * 60)
     
     # Define paths
@@ -312,16 +342,21 @@ if __name__ == "__main__":
         print("Computing coverage rates on pivoted FHIR DataFrame...")
         fhir_cov_df = calculate_cleaned_coverage(fhir_wide_df)
         print("✅ Coverage rates successfully computed!")
-        print(f"Shape after coverage: {fhir_cov_df.shape} (Rows: {fhir_cov_df.shape[0]}, Columns: {fhir_cov_df.shape[1]})")
-        print("\nSample of computed coverage rates (showing doses and coverage side-by-side):")
+        
+        # Step 2.5: Compute Cleaned Dropout
+        print("Computing dropout rates on pivoted FHIR DataFrame...")
+        fhir_drop_df = calculate_cleaned_dropout(fhir_cov_df)
+        print("✅ Dropout rates successfully computed!")
+        print(f"Shape after dropout: {fhir_drop_df.shape} (Rows: {fhir_drop_df.shape[0]}, Columns: {fhir_drop_df.shape[1]})")
+        print("\nSample of computed dropout rates (showing Penta and Rota dropouts):")
         display_cols = [
             'SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 
-            'BCG_Doses', 'BCG_Coverage', 
-            'Penta_1_Doses', 'Penta_1_Coverage'
+            'Penta_1_Doses', 'Penta_3_Doses', 'Penta_Dropout',
+            'Rota_1_Doses', 'Rota_2_Doses', 'Rota_Dropout'
         ]
-        print(fhir_cov_df[display_cols].head(5).to_string(index=False))
+        print(fhir_drop_df[display_cols].head(5).to_string(index=False))
     else:
         print(f"❌ FHIR bundle file not found at: {fhir_bundle_path}")
         
-    print("\n✅ STEP 2.4 COMPLETE")
+    print("\n✅ STEP 2.5 COMPLETE")
     print("=" * 60)
