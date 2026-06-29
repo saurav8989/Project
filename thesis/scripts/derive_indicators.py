@@ -189,10 +189,59 @@ def parse_fhir_bundle(bundle_path):
     parsed_df = pd.DataFrame(records)
     return parsed_df
 
+def assemble_pivoted_dataframe(parsed_df):
+    """
+    Step 2.3: Pivots the parsed long FHIR DataFrame (1080 rows) into a 
+    wide DataFrame (60 rows) sorted chronologically by the Nepali Calendar.
+    """
+    # Pivot the long format to wide format, grouping by monthly identifiers
+    pivot_cols = [
+        'Fiscal Year', 'Month (EN)', 'Month (NP)', 'District',
+        'Surviving Infants (Monthly)', 'Facilities Expected', 
+        'Facilities Reported', 'Facilities Not Reported'
+    ]
+    
+    df_pivot = parsed_df.pivot(
+        index=pivot_cols,
+        columns='Vaccine_Key',
+        values='Doses'
+    ).reset_index()
+    
+    # Map English month names to Nepali calendar month numbers (Shrawan = 1, Asar = 12)
+    month_mapping = {
+        'Shrawan': 1, 'Bhadra': 2, 'Ashwin': 3, 'Kartik': 4,
+        'Mangsir': 5, 'Poush': 6, 'Magh': 7, 'Falgun': 8,
+        'Chaitra': 9, 'Baishak': 10, 'Jestha': 11, 'Asar': 12
+    }
+    
+    df_pivot['Month No.'] = df_pivot['Month (EN)'].map(month_mapping)
+    
+    # Sort chronologically by Fiscal Year and Month No.
+    df_pivot = df_pivot.sort_values(by=['Fiscal Year', 'Month No.']).reset_index(drop=True)
+    
+    # Generate Serial Number (SN) from 1 to 60
+    df_pivot.insert(0, 'SN', df_pivot.index + 1)
+    
+    # Reorder columns to place month details at the beginning
+    desired_cols = [
+        'SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 'Month (NP)', 
+        'District', 'Surviving Infants (Monthly)', 'Facilities Expected', 
+        'Facilities Reported', 'Facilities Not Reported'
+    ]
+    
+    vaccine_keys = [
+        'BCG', 'Rota_1', 'Rota_2', 'OPV_1', 'OPV_2', 'OPV_3',
+        'fIPV_1', 'fIPV_2', 'PCV_1', 'PCV_2', 'PCV_3', 
+        'Penta_1', 'Penta_2', 'Penta_3', 'MR_1', 'MR_2', 'JE', 'TCV'
+    ]
+    
+    df_pivot = df_pivot[desired_cols + vaccine_keys]
+    return df_pivot
+
 if __name__ == "__main__":
     import json
     print("=" * 60)
-    print("PHASE 2 - STEPS 2.1 & 2.2: INDICATOR EXTRACTION")
+    print("PHASE 2 - STEPS 2.1 to 2.3: INDICATOR EXTRACTION")
     print("=" * 60)
     
     # Define paths
@@ -219,16 +268,22 @@ if __name__ == "__main__":
         
     print("-" * 60)
     
-    # Step 2.2: Load & Parse FHIR Bundle Data
+    # Step 2.2 & 2.3: Load & Parse FHIR Bundle Data
     if fhir_bundle_path.exists():
         print(f"Loading master FHIR bundle from: {fhir_bundle_path}")
         fhir_parsed_df = parse_fhir_bundle(str(fhir_bundle_path))
         print("✅ FHIR Bundle successfully parsed!")
-        print(f"Parsed Shape: {fhir_parsed_df.shape} (Rows/Entries: {fhir_parsed_df.shape[0]}, Columns: {fhir_parsed_df.shape[1]})")
-        print("\nSample of parsed FHIR records:")
-        print(fhir_parsed_df.head(5).to_string(index=False))
+        
+        # Step 2.3: Pivot and Assemble Wide DataFrame
+        print("Assembling pivoted wide-format DataFrame...")
+        fhir_wide_df = assemble_pivoted_dataframe(fhir_parsed_df)
+        print("✅ FHIR DataFrame successfully pivoted!")
+        print(f"Pivoted Shape: {fhir_wide_df.shape} (Rows: {fhir_wide_df.shape[0]}, Columns: {fhir_wide_df.shape[1]})")
+        print("\nSample of wide pivoted FHIR DataFrame (showing month details and some vaccines):")
+        display_cols = ['SN', 'Fiscal Year', 'Month No.', 'Month (EN)', 'BCG', 'Penta_1', 'TCV']
+        print(fhir_wide_df[display_cols].head(5).to_string(index=False))
     else:
         print(f"❌ FHIR bundle file not found at: {fhir_bundle_path}")
         
-    print("\n✅ STEP 2.2 COMPLETE")
+    print("\n✅ STEP 2.3 COMPLETE")
     print("=" * 60)
