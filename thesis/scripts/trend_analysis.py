@@ -14,6 +14,7 @@ logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
 
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from scipy.stats import kendalltau
 
 # Add project root to path for imports
 current_dir = Path(__file__).resolve().parent
@@ -136,6 +137,74 @@ def run_acf_pacf_analysis(df, indicator, output_dir):
     plt.close()
     
     print(f"✅ Saved ACF/PACF plot to: {plot_path}")
+
+def run_trend_significance_tests(df, output_table_dir):
+    """
+    Step 3.5: Applies the Mann-Kendall trend significance test and
+    Sen's Slope Estimator to verify trend direction and magnitude.
+    Runs on all 18 coverage and 6 dropout series from the Cleaned dataset.
+    """
+    print("Running Mann-Kendall Trend Significance & Sen's Slope Estimation...")
+    
+    # Identify indicators dynamically
+    indicators = [col for col in df.columns if col.endswith('_Coverage') or col.endswith('_Dropout')]
+    
+    results = []
+    
+    for col in indicators:
+        # Get series and drop NaNs
+        series = df[col].dropna()
+        y = series.values
+        n = len(y)
+        
+        if n < 5:
+            print(f"⚠️ Skipping {col} (too few observations: {n})")
+            continue
+            
+        # Chronological index for Kendall Tau
+        x = np.arange(1, n + 1)
+        
+        # Mann-Kendall Test via kendalltau
+        tau, p_val = kendalltau(x, y)
+        
+        # Sen's Slope calculation (median of pairwise slopes)
+        slopes = []
+        for i in range(n):
+            for j in range(i + 1, n):
+                slopes.append((y[j] - y[i]) / (j - i))
+        sens_slope = np.median(slopes)
+        
+        significant = "Yes" if p_val < 0.05 else "No"
+        
+        # Determine trend direction based on tau and significance
+        if significant == "Yes":
+            direction = "Upward" if tau > 0 else "Downward"
+        else:
+            direction = "No Trend"
+            
+        results.append({
+            'Indicator': col,
+            'Kendall_Tau': tau,
+            'P_Value': p_val,
+            'Significant': significant,
+            'Trend_Direction': direction,
+            'Sens_Slope_Per_Month': sens_slope,
+            'Annual_Change_Rate': sens_slope * 12
+        })
+        
+    results_df = pd.DataFrame(results)
+    output_path = output_table_dir / "trend_significance_report.csv"
+    results_df.to_csv(output_path, index=False)
+    
+    print(f"✅ Saved Trend Significance report to: {output_path}")
+    
+    # Print summary of significant trends
+    sig_df = results_df[results_df['Significant'] == 'Yes']
+    print(f"Summary: Significant Trends (p < 0.05): {len(sig_df)}/24")
+    for idx, row in sig_df.iterrows():
+        print(f" - {row['Indicator']}: {row['Trend_Direction']} (Slope: {row['Sens_Slope_Per_Month']:.4f}/mo, Annual: {row['Annual_Change_Rate']:.2f}%)")
+        
+    return results_df
 
 def run_adf_tests(raw_df, cleaned_df, output_table_dir):
     """
@@ -276,8 +345,12 @@ if __name__ == "__main__":
         for indicator in target_indicators:
             if indicator in df_cleaned.columns:
                 run_acf_pacf_analysis(df_cleaned, indicator, figures_dir)
+                
+        # Step 3.5: Mann-Kendall Trend Significance & Sen's Slope
+        print("\n--- Running Trend Significance Tests (Step 3.5) ---")
+        run_trend_significance_tests(df_cleaned, tables_dir)
     else:
         print("❌ Dataset files not found. Make sure Phase 2 has been completed.")
         
-    print("\n✅ STEP 3.4 COMPLETE")
+    print("\n✅ STEP 3.5 COMPLETE")
     print("=" * 60)
