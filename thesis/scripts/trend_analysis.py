@@ -12,6 +12,8 @@ import logging
 logging.getLogger('prophet').setLevel(logging.WARNING)
 logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
 
+from statsmodels.tsa.stattools import adfuller
+
 # Add project root to path for imports
 current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent.parent
@@ -101,24 +103,120 @@ def run_prophet_decomposition(df_input, indicator, output_dir):
     print(f"✅ Saved Prophet decomposition plot to: {plot_path}")
     return forecast
 
+def run_adf_tests(raw_df, cleaned_df, output_table_dir):
+    """
+    Step 3.3: Performs Augmented Dickey-Fuller (ADF) tests to check if the
+    series are stationary and determines the required order of differencing.
+    Runs on all 18 coverage and 6 dropout series for both Raw and Cleaned datasets.
+    """
+    print("Running Augmented Dickey-Fuller (ADF) Stationarity Tests...")
+    
+    # Identify indicators dynamically (columns ending with _Coverage or _Dropout)
+    indicators = [col for col in cleaned_df.columns if col.endswith('_Coverage') or col.endswith('_Dropout')]
+    
+    results = []
+    
+    for col in indicators:
+        # Check if the column is present in both raw and cleaned dataframes
+        if col not in raw_df.columns:
+            print(f"⚠️ Skipping {col} (not found in Raw dataset)")
+            continue
+            
+        # Get raw and cleaned series (dropping NaNs which represent pre-introduction months or missing values)
+        raw_series = raw_df[col].dropna()
+        cleaned_series = cleaned_df[col].dropna()
+        
+        # --- 1. Raw Series ADF ---
+        raw_stat, raw_p, raw_d = np.nan, np.nan, "N/A"
+        raw_stationary = "Unknown"
+        if len(raw_series) >= 10:
+            try:
+                raw_res = adfuller(raw_series)
+                raw_stat = raw_res[0]
+                raw_p = raw_res[1]
+                raw_stationary = "Yes" if raw_p < 0.05 else "No"
+                
+                # Check order of differencing
+                if raw_p < 0.05:
+                    raw_d = "0"
+                else:
+                    raw_diff = raw_series.diff().dropna()
+                    raw_diff_res = adfuller(raw_diff)
+                    raw_d = "1" if raw_diff_res[1] < 0.05 else ">=2"
+            except Exception as e:
+                print(f"⚠️ Error running ADF on Raw {col}: {e}")
+        
+        # --- 2. Cleaned Series ADF ---
+        cleaned_stat, cleaned_p, cleaned_d = np.nan, np.nan, "N/A"
+        cleaned_stationary = "Unknown"
+        if len(cleaned_series) >= 10:
+            try:
+                cleaned_res = adfuller(cleaned_series)
+                cleaned_stat = cleaned_res[0]
+                cleaned_p = cleaned_res[1]
+                cleaned_stationary = "Yes" if cleaned_p < 0.05 else "No"
+                
+                # Check order of differencing
+                if cleaned_p < 0.05:
+                    cleaned_d = "0"
+                else:
+                    cleaned_diff = cleaned_series.diff().dropna()
+                    cleaned_diff_res = adfuller(cleaned_diff)
+                    cleaned_d = "1" if cleaned_diff_res[1] < 0.05 else ">=2"
+            except Exception as e:
+                print(f"⚠️ Error running ADF on Cleaned {col}: {e}")
+                
+        results.append({
+            'Indicator': col,
+            'Raw_ADF_Stat': raw_stat,
+            'Raw_P_Value': raw_p,
+            'Raw_Stationary': raw_stationary,
+            'Raw_Required_d': raw_d,
+            'Cleaned_ADF_Stat': cleaned_stat,
+            'Cleaned_P_Value': cleaned_p,
+            'Cleaned_Stationary': cleaned_stationary,
+            'Cleaned_Required_d': cleaned_d
+        })
+        
+    # Compile and save
+    results_df = pd.DataFrame(results)
+    output_path = output_table_dir / "adf_stationarity_comparison.csv"
+    results_df.to_csv(output_path, index=False)
+    
+    print(f"✅ Saved ADF stationarity comparison report to: {output_path}")
+    
+    # Print a small summary of stationary indicators
+    raw_stat_count = (results_df['Raw_Stationary'] == 'Yes').sum()
+    cleaned_stat_count = (results_df['Cleaned_Stationary'] == 'Yes').sum()
+    print(f"Summary: Stationary Series (p < 0.05): Raw: {raw_stat_count}/24 | Cleaned: {cleaned_stat_count}/24")
+    
+    return results_df
+
 if __name__ == "__main__":
     print("=" * 60)
-    print("PHASE 3 - STEPS 3.1 & 3.2: SEASONAL DECOMPOSITION")
+    print("PHASE 3 - STEPS 3.1, 3.2 & 3.3: TREND AND STATIONARITY ANALYSIS")
     print("=" * 60)
     
     # Define paths
+    raw_data_path = project_root / "thesis" / "outputs" / "tables" / "Indicators_Raw.csv"
     cleaned_data_path = project_root / "thesis" / "outputs" / "tables" / "Indicators_Cleaned.csv"
     figures_dir = project_root / "thesis" / "outputs" / "figures"
+    tables_dir = project_root / "thesis" / "outputs" / "tables"
     figures_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=True)
     
-    if cleaned_data_path.exists():
-        print(f"Loading cleaned indicators from: {cleaned_data_path}")
-        df = pd.read_csv(cleaned_data_path)
+    if cleaned_data_path.exists() and raw_data_path.exists():
+        print(f"Loading datasets:\n - Raw: {raw_data_path}\n - Cleaned: {cleaned_data_path}")
+        df_raw = pd.read_csv(raw_data_path)
+        df_cleaned = pd.read_csv(cleaned_data_path)
         
         # Generate dummy datetime index starting 2020-07-01 (Shrawan 2077/78)
-        # to ensure chronological monthly spacing.
-        df['Date'] = pd.date_range(start='2020-07-01', periods=len(df), freq='MS')
-        df.set_index('Date', inplace=True)
+        # to ensure chronological monthly spacing for decomposition.
+        df_cleaned['Date'] = pd.date_range(start='2020-07-01', periods=len(df_cleaned), freq='MS')
+        df_cleaned.set_index('Date', inplace=True)
+        
+        df_raw['Date'] = pd.date_range(start='2020-07-01', periods=len(df_raw), freq='MS')
+        df_raw.set_index('Date', inplace=True)
         
         # Selected key indicators
         target_indicators = ['BCG_Coverage', 'Penta_1_Coverage', 'Penta_Dropout']
@@ -126,16 +224,20 @@ if __name__ == "__main__":
         # Step 3.1: Classical Decomposition
         print("\n--- Running Classical Decomposition (Step 3.1) ---")
         for indicator in target_indicators:
-            if indicator in df.columns:
-                run_classical_decomposition(df, indicator, figures_dir)
+            if indicator in df_cleaned.columns:
+                run_classical_decomposition(df_cleaned, indicator, figures_dir)
                 
         # Step 3.2: Prophet Decomposition
         print("\n--- Running Prophet Decomposition (Step 3.2) ---")
         for indicator in target_indicators:
-            if indicator in df.columns:
-                run_prophet_decomposition(df, indicator, figures_dir)
+            if indicator in df_cleaned.columns:
+                run_prophet_decomposition(df_cleaned, indicator, figures_dir)
+                
+        # Step 3.3: Augmented Dickey-Fuller Tests
+        print("\n--- Running ADF Stationarity Tests (Step 3.3) ---")
+        run_adf_tests(df_raw, df_cleaned, tables_dir)
     else:
-        print(f"❌ Cleaned dataset not found at: {cleaned_data_path}")
+        print("❌ Dataset files not found. Make sure Phase 2 has been completed.")
         
-    print("\n✅ STEP 3.2 COMPLETE")
+    print("\n✅ STEP 3.3 COMPLETE")
     print("=" * 60)
