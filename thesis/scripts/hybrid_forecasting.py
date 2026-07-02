@@ -151,6 +151,22 @@ def generate_hybrid_predictions(suffix="cleaned"):
         pd.DataFrame(all_metrics).to_csv(os.path.join(TABLES_DIR, f"metrics_hybrid_{suffix}.csv"), index=False)
         print(f"Generated hybrid predictions and metrics for suffix: {suffix}")
         
+        # Generate and save weight distribution table (Phase 4.6 style for report copy-paste)
+        weights_df = pd.DataFrame([
+            {
+                'Indicator': m['Indicator'],
+                'ARIMA Weight (%)': round(m['Weight_ARIMA'] * 100, 2),
+                'SARIMA Weight (%)': round(m['Weight_SARIMA'] * 100, 2),
+                'Prophet Weight (%)': round(m['Weight_Prophet'] * 100, 2),
+                'RF Weight (%)': round(m['Weight_RF'] * 100, 2),
+                'GB Weight (%)': round(m['Weight_GB'] * 100, 2),
+                'Total (%)': round((m['Weight_ARIMA'] + m['Weight_SARIMA'] + m['Weight_Prophet'] + m['Weight_RF'] + m['Weight_GB']) * 100, 2)
+            } for m in all_metrics
+        ])
+        weights_csv_path = os.path.join(TABLES_DIR, f"hybrid_weights_distribution_{suffix}.csv")
+        weights_df.to_csv(weights_csv_path, index=False)
+        print(f"Generated weight distribution CSV: {weights_csv_path}")
+        
         # Serialize the weights (Phase 4.6 Style)
         os.makedirs(MODELS_DIR, exist_ok=True)
         joblib_path = os.path.join(MODELS_DIR, f"hybrid_weights_{suffix}.joblib")
