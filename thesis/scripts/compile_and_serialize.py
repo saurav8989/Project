@@ -36,15 +36,18 @@ def compile_metrics(tables_dir):
         arima_path = tables_dir / f"metrics_arima_sarima_{ds}.csv"
         prophet_path = tables_dir / f"metrics_prophet_{ds}.csv"
         ml_path = tables_dir / f"metrics_ml_{ds}.csv"
+        hybrid_path = tables_dir / f"metrics_hybrid_{ds}.csv"
         
-        if arima_path.exists() and prophet_path.exists() and ml_path.exists():
+        if arima_path.exists() and prophet_path.exists() and ml_path.exists() and hybrid_path.exists():
             df_arima = pd.read_csv(arima_path)
             df_prophet = pd.read_csv(prophet_path)
             df_ml = pd.read_csv(ml_path)
+            df_hybrid = pd.read_csv(hybrid_path)
             
             # Merge on Indicator
             df_merge = pd.merge(df_arima, df_prophet, on='Indicator', how='outer')
             df_merge = pd.merge(df_merge, df_ml, on='Indicator', how='outer')
+            df_merge = pd.merge(df_merge, df_hybrid, on='Indicator', how='outer')
             
             # Select and rename key RMSE metrics for clean presentation
             df_summary = pd.DataFrame({
@@ -55,11 +58,13 @@ def compile_metrics(tables_dir):
                 'Prophet_RMSE': df_merge['Prophet_RMSE'],
                 'RF_RMSE': df_merge['RF_RMSE'],
                 'GB_RMSE': df_merge['GB_RMSE'],
+                'Hybrid_RMSE': df_merge['Hybrid_RMSE'],
                 'ARIMA_MAE': df_merge['ARIMA_MAE'],
                 'SARIMA_MAE': df_merge['SARIMA_MAE'],
                 'Prophet_MAE': df_merge['Prophet_MAE'],
                 'RF_MAE': df_merge['RF_MAE'],
-                'GB_MAE': df_merge['GB_MAE']
+                'GB_MAE': df_merge['GB_MAE'],
+                'Hybrid_MAE': df_merge['Hybrid_MAE']
             })
             reg_list.append(df_summary)
             
