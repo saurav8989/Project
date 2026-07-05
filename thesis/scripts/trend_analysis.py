@@ -21,6 +21,28 @@ current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent.parent
 sys.path.append(str(project_root))
 
+def get_vaccine_family(indicator_name):
+    name_lower = indicator_name.lower()
+    if 'bcg' in name_lower:
+        return 'BCG'
+    elif 'rota' in name_lower:
+        return 'Rota'
+    elif 'opv' in name_lower:
+        return 'OPV'
+    elif 'fipv' in name_lower:
+        return 'fIPV'
+    elif 'pcv' in name_lower:
+        return 'PCV'
+    elif 'penta' in name_lower:
+        return 'Penta'
+    elif 'mr' in name_lower:
+        return 'MR'
+    elif 'je' in name_lower:
+        return 'JE'
+    elif 'tcv' in name_lower:
+        return 'TCV'
+    return 'Other'
+
 def run_classical_decomposition(df, indicator, output_dir):
     """
     Step 3.1: Applies classical seasonal decomposition (Additive)
@@ -61,7 +83,10 @@ def run_classical_decomposition(df, indicator, output_dir):
     
     # Save plot
     clean_name = indicator.lower().replace(' ', '_')
-    plot_path = output_dir / f"classical_decomp_{clean_name}.png"
+    family = get_vaccine_family(indicator)
+    target_dir = output_dir / "Time-Series Seasonality & Autocorrelation Profile" / "Classical Seasonal Decomposition" / family
+    target_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = target_dir / f"classical_decomp_{clean_name}.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
     
@@ -98,7 +123,10 @@ def run_prophet_decomposition(df_input, indicator, output_dir):
     
     # Save plot
     clean_name = indicator.lower().replace(' ', '_')
-    plot_path = output_dir / f"prophet_decomp_{clean_name}.png"
+    family = get_vaccine_family(indicator)
+    target_dir = output_dir / "Time-Series Seasonality & Autocorrelation Profile" / "Prophet Decomposition" / family
+    target_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = target_dir / f"prophet_decomp_{clean_name}.png"
     fig.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
     
@@ -132,7 +160,10 @@ def run_acf_pacf_analysis(df, indicator, output_dir):
     
     # Save plot
     clean_name = indicator.lower().replace(' ', '_')
-    plot_path = output_dir / f"acf_pacf_{clean_name}.png"
+    family = get_vaccine_family(indicator)
+    target_dir = output_dir / "Time-Series Seasonality & Autocorrelation Profile" / "ACF & PACF Correlation Plots" / family
+    target_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = target_dir / f"acf_pacf_{clean_name}.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
     
