@@ -301,8 +301,8 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Define paths
-    raw_data_path = project_root / "thesis" / "outputs" / "tables" / "Indicators_Raw.csv"
-    cleaned_data_path = project_root / "thesis" / "outputs" / "tables" / "Indicators_Cleaned.csv"
+    raw_data_path = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Raw.csv"
+    cleaned_data_path = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Cleaned.csv"
     figures_dir = project_root / "thesis" / "outputs" / "figures"
     tables_dir = project_root / "thesis" / "outputs" / "tables"
     figures_dir.mkdir(parents=True, exist_ok=True)
@@ -321,8 +321,8 @@ if __name__ == "__main__":
         df_raw['Date'] = pd.date_range(start='2020-07-01', periods=len(df_raw), freq='MS')
         df_raw.set_index('Date', inplace=True)
         
-        # Selected key indicators
-        target_indicators = ['BCG_Coverage', 'Penta_1_Coverage', 'Penta_Dropout']
+        # Selected key indicators (all 24 coverage/dropout metrics)
+        target_indicators = [col for col in df_cleaned.columns if col.endswith('_Coverage') or col.endswith('_Dropout')]
         
         # Step 3.1: Classical Decomposition
         print("\n--- Running Classical Decomposition (Step 3.1) ---")
@@ -338,7 +338,7 @@ if __name__ == "__main__":
                 
         # Step 3.3: Augmented Dickey-Fuller Tests
         print("\n--- Running ADF Stationarity Tests (Step 3.3) ---")
-        run_adf_tests(df_raw, df_cleaned, tables_dir)
+        run_adf_tests(df_raw, df_cleaned, tables_dir / "Diagnostics")
         
         # Step 3.4: Autocorrelation & Partial Autocorrelation Profiling
         print("\n--- Running ACF/PACF Diagnostic Profiling (Step 3.4) ---")
@@ -348,7 +348,7 @@ if __name__ == "__main__":
                 
         # Step 3.5: Mann-Kendall Trend Significance & Sen's Slope
         print("\n--- Running Trend Significance Tests (Step 3.5) ---")
-        run_trend_significance_tests(df_cleaned, tables_dir)
+        run_trend_significance_tests(df_cleaned, tables_dir / "Diagnostics")
     else:
         print("❌ Dataset files not found. Make sure Phase 2 has been completed.")
         
