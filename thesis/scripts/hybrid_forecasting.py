@@ -167,9 +167,10 @@ def generate_hybrid_predictions(suffix="cleaned"):
         weights_df.to_csv(weights_csv_path, index=False)
         print(f"Generated weight distribution CSV: {weights_csv_path}")
         
-        # Serialize the weights (Phase 4.6 Style)
-        os.makedirs(MODELS_DIR, exist_ok=True)
-        joblib_path = os.path.join(MODELS_DIR, f"hybrid_weights_{suffix}.joblib")
+        # Serialize the weights (Phase 4.6 Style) under Ensemble subdirectory
+        ensemble_dir = os.path.join(MODELS_DIR, "Ensemble")
+        os.makedirs(ensemble_dir, exist_ok=True)
+        joblib_path = os.path.join(ensemble_dir, f"hybrid_weights_{suffix}.joblib")
         joblib.dump(weights_serialized, joblib_path)
         print(f"Serialized hybrid weights to: {joblib_path}")
 

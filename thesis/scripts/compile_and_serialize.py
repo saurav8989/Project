@@ -112,6 +112,17 @@ def serialize_cleaned_models(prep, models_dir):
     """
     print("\n--- Serializing Production-Ready Models Trained on Entire Cleaned Dataset ---")
     
+    # Define and create subdirectories for clean file organization
+    subdirs = {
+        'ARIMA': models_dir / "ARIMA",
+        'SARIMA': models_dir / "SARIMA",
+        'Prophet': models_dir / "Prophet",
+        'RF': models_dir / "RF",
+        'GB': models_dir / "GB"
+    }
+    for path in subdirs.values():
+        os.makedirs(path, exist_ok=True)
+    
     # Identify indicators dynamically
     indicators = [col for col in prep.df_cleaned.columns if col.endswith('_Coverage') or col.endswith('_Dropout')]
     
@@ -141,7 +152,7 @@ def serialize_cleaned_models(prep, models_dir):
         try:
             arima_model = ARIMA(full_y, order=(1, d_val, 1))
             arima_fit = arima_model.fit()
-            joblib.dump(arima_fit, models_dir / f"{col}_arima.joblib")
+            joblib.dump(arima_fit, subdirs['ARIMA'] / f"{col}_arima.joblib")
         except Exception as e:
             print(f"  ❌ ARIMA serialization failed: {e}")
             
@@ -149,7 +160,7 @@ def serialize_cleaned_models(prep, models_dir):
         try:
             sarima_model = SARIMAX(full_y, order=(1, d_val, 1), seasonal_order=(0, d_val, 0, 12))
             sarima_fit = sarima_model.fit(disp=False)
-            joblib.dump(sarima_fit, models_dir / f"{col}_sarima.joblib")
+            joblib.dump(sarima_fit, subdirs['SARIMA'] / f"{col}_sarima.joblib")
         except Exception as e:
             print(f"  ❌ SARIMA serialization failed: {e}")
             
@@ -161,7 +172,7 @@ def serialize_cleaned_models(prep, models_dir):
             })
             prophet_model = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
             prophet_model.fit(df_prophet)
-            joblib.dump(prophet_model, models_dir / f"{col}_prophet.joblib")
+            joblib.dump(prophet_model, subdirs['Prophet'] / f"{col}_prophet.joblib")
         except Exception as e:
             print(f"  ❌ Prophet serialization failed: {e}")
 
@@ -175,7 +186,7 @@ def serialize_cleaned_models(prep, models_dir):
         try:
             rf_reg = RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42)
             rf_reg.fit(full_X, full_y_ml)
-            joblib.dump(rf_reg, models_dir / f"{col}_rf_reg.joblib")
+            joblib.dump(rf_reg, subdirs['RF'] / f"{col}_rf_reg.joblib")
         except Exception as e:
             print(f"  ❌ RF Regressor serialization failed: {e}")
             
@@ -183,7 +194,7 @@ def serialize_cleaned_models(prep, models_dir):
         try:
             gb_reg = GradientBoostingRegressor(n_estimators=100, learning_rate=0.05, max_depth=3, random_state=42)
             gb_reg.fit(full_X, full_y_ml)
-            joblib.dump(gb_reg, models_dir / f"{col}_gb_reg.joblib")
+            joblib.dump(gb_reg, subdirs['GB'] / f"{col}_gb_reg.joblib")
         except Exception as e:
             print(f"  ❌ GB Regressor serialization failed: {e}")
 
