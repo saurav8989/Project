@@ -124,8 +124,8 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Define paths
-    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Raw.csv"
-    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Cleaned.csv"
+    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Raw.csv"
+    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Cleaned.csv"
     
     try:
         prep = ImmunizationDataPrep(raw_csv, cleaned_csv)

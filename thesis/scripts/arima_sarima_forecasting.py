@@ -204,8 +204,8 @@ def run_arima_sarima_pipeline(prep, dataset_type, adf_report_df, output_dir):
     metrics_df = pd.DataFrame(metrics_records)
     predictions_df = pd.DataFrame(predictions_records)
     
-    metrics_path = output_dir / f"metrics_arima_sarima_{dataset_type}.csv"
-    predictions_path = output_dir / f"predictions_arima_sarima_{dataset_type}.csv"
+    metrics_path = output_dir / "Metrics" / f"metrics_arima_sarima_{dataset_type}.csv"
+    predictions_path = output_dir / "Predictions" / f"predictions_arima_sarima_{dataset_type}.csv"
     
     metrics_df.to_csv(metrics_path, index=False)
     predictions_df.to_csv(predictions_path, index=False)
@@ -223,9 +223,9 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Paths
-    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Raw.csv"
-    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Cleaned.csv"
-    adf_csv = project_root / "thesis" / "outputs" / "tables" / "adf_stationarity_comparison.csv"
+    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Raw.csv"
+    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Cleaned.csv"
+    adf_csv = project_root / "thesis" / "outputs" / "tables" / "Diagnostics" / "adf_stationarity_comparison.csv"
     tables_dir = project_root / "thesis" / "outputs" / "tables"
     
     if adf_csv.exists():

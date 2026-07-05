@@ -163,8 +163,8 @@ def run_ml_pipeline(prep, dataset_type, output_dir):
     metrics_df = pd.DataFrame(metrics_records)
     predictions_df = pd.DataFrame(predictions_records)
     
-    metrics_path = output_dir / f"metrics_ml_{dataset_type}.csv"
-    predictions_path = output_dir / f"predictions_ml_{dataset_type}.csv"
+    metrics_path = output_dir / "Metrics" / f"metrics_ml_{dataset_type}.csv"
+    predictions_path = output_dir / "Predictions" / f"predictions_ml_{dataset_type}.csv"
     
     metrics_df.to_csv(metrics_path, index=False)
     predictions_df.to_csv(predictions_path, index=False)
@@ -182,8 +182,8 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Paths
-    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Raw.csv"
-    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Cleaned.csv"
+    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Raw.csv"
+    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Cleaned.csv"
     tables_dir = project_root / "thesis" / "outputs" / "tables"
     
     prep = ImmunizationDataPrep(raw_csv, cleaned_csv)

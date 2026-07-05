@@ -8,13 +8,13 @@ MODELS_DIR = "thesis/outputs/models"
 
 def generate_hybrid_predictions(suffix="cleaned"):
     # File paths
-    metrics_arima_file = os.path.join(TABLES_DIR, f"metrics_arima_sarima_{suffix}.csv")
-    metrics_prophet_file = os.path.join(TABLES_DIR, f"metrics_prophet_{suffix}.csv")
-    metrics_ml_file = os.path.join(TABLES_DIR, f"metrics_ml_{suffix}.csv")
+    metrics_arima_file = os.path.join(TABLES_DIR, "Metrics", f"metrics_arima_sarima_{suffix}.csv")
+    metrics_prophet_file = os.path.join(TABLES_DIR, "Metrics", f"metrics_prophet_{suffix}.csv")
+    metrics_ml_file = os.path.join(TABLES_DIR, "Metrics", f"metrics_ml_{suffix}.csv")
     
-    pred_arima_file = os.path.join(TABLES_DIR, f"predictions_arima_sarima_{suffix}.csv")
-    pred_prophet_file = os.path.join(TABLES_DIR, f"predictions_prophet_{suffix}.csv")
-    pred_ml_file = os.path.join(TABLES_DIR, f"predictions_ml_{suffix}.csv")
+    pred_arima_file = os.path.join(TABLES_DIR, "Predictions", f"predictions_arima_sarima_{suffix}.csv")
+    pred_prophet_file = os.path.join(TABLES_DIR, "Predictions", f"predictions_prophet_{suffix}.csv")
+    pred_ml_file = os.path.join(TABLES_DIR, "Predictions", f"predictions_ml_{suffix}.csv")
     
     # Check existence
     files_exist = [
@@ -147,8 +147,8 @@ def generate_hybrid_predictions(suffix="cleaned"):
         })
         
     if len(all_predictions) > 0:
-        pd.concat(all_predictions, ignore_index=True).to_csv(os.path.join(TABLES_DIR, f"predictions_hybrid_{suffix}.csv"), index=False)
-        pd.DataFrame(all_metrics).to_csv(os.path.join(TABLES_DIR, f"metrics_hybrid_{suffix}.csv"), index=False)
+        pd.concat(all_predictions, ignore_index=True).to_csv(os.path.join(TABLES_DIR, "Predictions", f"predictions_hybrid_{suffix}.csv"), index=False)
+        pd.DataFrame(all_metrics).to_csv(os.path.join(TABLES_DIR, "Metrics", f"metrics_hybrid_{suffix}.csv"), index=False)
         print(f"Generated hybrid predictions and metrics for suffix: {suffix}")
         
         # Generate and save weight distribution table (Phase 4.6 style for report copy-paste)
@@ -163,7 +163,7 @@ def generate_hybrid_predictions(suffix="cleaned"):
                 'Total (%)': round((m['Weight_ARIMA'] + m['Weight_SARIMA'] + m['Weight_Prophet'] + m['Weight_RF'] + m['Weight_GB']) * 100, 2)
             } for m in all_metrics
         ])
-        weights_csv_path = os.path.join(TABLES_DIR, f"hybrid_weights_distribution_{suffix}.csv")
+        weights_csv_path = os.path.join(TABLES_DIR, "Weights", f"hybrid_weights_distribution_{suffix}.csv")
         weights_df.to_csv(weights_csv_path, index=False)
         print(f"Generated weight distribution CSV: {weights_csv_path}")
         

@@ -7,11 +7,11 @@ from scipy.stats import wilcoxon
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES_DIR = os.path.join(BASE_DIR, 'outputs', 'tables')
 
-REG_SUMMARY_PATH = os.path.join(TABLES_DIR, 'regression_summary.csv')
-CLS_SUMMARY_PATH = os.path.join(TABLES_DIR, 'classification_summary.csv')
+REG_SUMMARY_PATH = os.path.join(TABLES_DIR, 'Significance_Analysis', 'regression_summary.csv')
+CLS_SUMMARY_PATH = os.path.join(TABLES_DIR, 'Significance_Analysis', 'classification_summary.csv')
 
-REG_OUTPUT_PATH = os.path.join(TABLES_DIR, 'dqa_comparison_regression.csv')
-CLS_OUTPUT_PATH = os.path.join(TABLES_DIR, 'dqa_comparison_classification.csv')
+REG_OUTPUT_PATH = os.path.join(TABLES_DIR, 'Significance_Analysis', 'dqa_comparison_regression.csv')
+CLS_OUTPUT_PATH = os.path.join(TABLES_DIR, 'Significance_Analysis', 'dqa_comparison_classification.csv')
 
 def run_regression_comparison():
     print("=" * 80)

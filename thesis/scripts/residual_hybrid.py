@@ -41,12 +41,12 @@ def fit_residual_hybrid_models(suffix="cleaned"):
     print(f"RUNNING RESIDUAL HYBRID FORECASTING: {suffix.upper()}")
     print(f"==================================================")
     
-    raw_csv = TABLES_DIR / "Indicators_Raw.csv"
-    cleaned_csv = TABLES_DIR / "Indicators_Cleaned.csv"
+    raw_csv = TABLES_DIR / "Input_Data" / "Indicators_Raw.csv"
+    cleaned_csv = TABLES_DIR / "Input_Data" / "Indicators_Cleaned.csv"
     prep = ImmunizationDataPrep(raw_csv, cleaned_csv)
     
     # Load ADF report to get differencing orders
-    adf_report_path = TABLES_DIR / "adf_stationarity_report.csv"
+    adf_report_path = TABLES_DIR / "Diagnostics" / "adf_stationarity_comparison.csv"
     if adf_report_path.exists():
         adf_report_df = pd.read_csv(adf_report_path)
     else:
@@ -259,8 +259,8 @@ def fit_residual_hybrid_models(suffix="cleaned"):
         
     # Write files
     if all_predictions:
-        pd.concat(all_predictions, ignore_index=True).to_csv(TABLES_DIR / f"predictions_residual_hybrid_{suffix}.csv", index=False)
-        pd.DataFrame(all_metrics).to_csv(TABLES_DIR / f"metrics_residual_hybrid_{suffix}.csv", index=False)
+        pd.concat(all_predictions, ignore_index=True).to_csv(TABLES_DIR / "Predictions" / f"predictions_residual_hybrid_{suffix}.csv", index=False)
+        pd.DataFrame(all_metrics).to_csv(TABLES_DIR / "Metrics" / f"metrics_residual_hybrid_{suffix}.csv", index=False)
         print(f"✅ Generated predictions and metrics for: residual_hybrid_{suffix}")
 
 if __name__ == "__main__":

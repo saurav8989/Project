@@ -33,11 +33,11 @@ def compile_metrics(tables_dir):
     reg_list = []
     
     for ds in datasets:
-        arima_path = tables_dir / f"metrics_arima_sarima_{ds}.csv"
-        prophet_path = tables_dir / f"metrics_prophet_{ds}.csv"
-        ml_path = tables_dir / f"metrics_ml_{ds}.csv"
-        hybrid_path = tables_dir / f"metrics_hybrid_{ds}.csv"
-        residual_path = tables_dir / f"metrics_residual_hybrid_{ds}.csv"
+        arima_path = tables_dir / "Metrics" / f"metrics_arima_sarima_{ds}.csv"
+        prophet_path = tables_dir / "Metrics" / f"metrics_prophet_{ds}.csv"
+        ml_path = tables_dir / "Metrics" / f"metrics_ml_{ds}.csv"
+        hybrid_path = tables_dir / "Metrics" / f"metrics_hybrid_{ds}.csv"
+        residual_path = tables_dir / "Metrics" / f"metrics_residual_hybrid_{ds}.csv"
         
         if arima_path.exists() and prophet_path.exists() and ml_path.exists() and hybrid_path.exists() and residual_path.exists():
             df_arima = pd.read_csv(arima_path)
@@ -81,7 +81,7 @@ def compile_metrics(tables_dir):
             
     if reg_list:
         reg_master = pd.concat(reg_list, ignore_index=True)
-        reg_master_path = tables_dir / "regression_summary.csv"
+        reg_master_path = tables_dir / "Significance_Analysis" / "regression_summary.csv"
         reg_master.to_csv(reg_master_path, index=False)
         print(f"✅ Created master regression metrics summary: {reg_master_path}")
     else:
@@ -90,7 +90,7 @@ def compile_metrics(tables_dir):
     # 2. CLASSIFICATION METRICS COMPILATION
     class_list = []
     for ds in datasets:
-        class_path = tables_dir / f"metrics_classification_{ds}.csv"
+        class_path = tables_dir / "Metrics" / f"metrics_classification_{ds}.csv"
         if class_path.exists():
             df_class = pd.read_csv(class_path)
             df_class.insert(1, 'Dataset', ds.capitalize())
@@ -98,7 +98,7 @@ def compile_metrics(tables_dir):
             
     if class_list:
         class_master = pd.concat(class_list, ignore_index=True)
-        class_master_path = tables_dir / "classification_summary.csv"
+        class_master_path = tables_dir / "Significance_Analysis" / "classification_summary.csv"
         class_master.to_csv(class_master_path, index=False)
         print(f"✅ Created master classification metrics summary: {class_master_path}")
     else:
@@ -127,7 +127,7 @@ def serialize_cleaned_models(prep, models_dir):
     indicators = [col for col in prep.df_cleaned.columns if col.endswith('_Coverage') or col.endswith('_Dropout')]
     
     # Load ADF report to get differencing orders
-    adf_report_path = project_root / "thesis" / "outputs" / "tables" / "adf_stationarity_report.csv"
+    adf_report_path = project_root / "thesis" / "outputs" / "tables" / "Diagnostics" / "adf_stationarity_comparison.csv"
     if adf_report_path.exists():
         adf_report_df = pd.read_csv(adf_report_path)
     else:
@@ -210,8 +210,8 @@ if __name__ == "__main__":
     models_dir = project_root / "thesis" / "outputs" / "models"
     os.makedirs(models_dir, exist_ok=True)
     
-    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Raw.csv"
-    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Indicators_Cleaned.csv"
+    raw_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Raw.csv"
+    cleaned_csv = project_root / "thesis" / "outputs" / "tables" / "Input_Data" / "Indicators_Cleaned.csv"
     
     prep = ImmunizationDataPrep(raw_csv, cleaned_csv)
     
