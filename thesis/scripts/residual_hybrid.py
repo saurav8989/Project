@@ -14,15 +14,15 @@ warnings.filterwarnings('ignore')
 
 # Add project root and thesis script directories to path for imports
 current_dir = Path(__file__).resolve().parent
-project_root = current_dir.parent.parent.parent
+project_root = current_dir.parent.parent
 sys.path.append(str(project_root))
-sys.path.append(str(current_dir.parent))
+sys.path.append(str(current_dir))
 
 # Import shared Data Prep engine
 from predictive_modeling import ImmunizationDataPrep
 
 TABLES_DIR = project_root / "thesis" / "outputs" / "tables"
-MODELS_ROOT = current_dir
+MODELS_ROOT = project_root / "thesis" / "outputs" / "models" / "Residual_Based_Hybrid"
 
 # Subdirectories for model serialization
 SUBDIRS = {
