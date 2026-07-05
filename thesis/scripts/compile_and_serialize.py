@@ -37,19 +37,22 @@ def compile_metrics(tables_dir):
         prophet_path = tables_dir / f"metrics_prophet_{ds}.csv"
         ml_path = tables_dir / f"metrics_ml_{ds}.csv"
         hybrid_path = tables_dir / f"metrics_hybrid_{ds}.csv"
+        residual_path = tables_dir / f"metrics_residual_hybrid_{ds}.csv"
         
-        if arima_path.exists() and prophet_path.exists() and ml_path.exists() and hybrid_path.exists():
+        if arima_path.exists() and prophet_path.exists() and ml_path.exists() and hybrid_path.exists() and residual_path.exists():
             df_arima = pd.read_csv(arima_path)
             df_prophet = pd.read_csv(prophet_path)
             df_ml = pd.read_csv(ml_path)
             df_hybrid = pd.read_csv(hybrid_path)
+            df_residual = pd.read_csv(residual_path)
             
             # Merge on Indicator
             df_merge = pd.merge(df_arima, df_prophet, on='Indicator', how='outer')
             df_merge = pd.merge(df_merge, df_ml, on='Indicator', how='outer')
             df_merge = pd.merge(df_merge, df_hybrid, on='Indicator', how='outer')
+            df_merge = pd.merge(df_merge, df_residual, on='Indicator', how='outer')
             
-            # Select and rename key RMSE metrics for clean presentation
+            # Select and rename key metrics for clean presentation
             df_summary = pd.DataFrame({
                 'Indicator': df_merge['Indicator'],
                 'Dataset': ds.capitalize(),
@@ -59,12 +62,20 @@ def compile_metrics(tables_dir):
                 'RF_RMSE': df_merge['RF_RMSE'],
                 'GB_RMSE': df_merge['GB_RMSE'],
                 'Hybrid_RMSE': df_merge['Hybrid_RMSE'],
+                'ARIMA_RF_RMSE': df_merge['ARIMA_RF_RMSE'],
+                'SARIMA_GB_RMSE': df_merge['SARIMA_GB_RMSE'],
+                'Prophet_RF_RMSE': df_merge['Prophet_RF_RMSE'],
+                'SARIMA_Prophet_RMSE': df_merge['SARIMA_Prophet_RMSE'],
                 'ARIMA_MAE': df_merge['ARIMA_MAE'],
                 'SARIMA_MAE': df_merge['SARIMA_MAE'],
                 'Prophet_MAE': df_merge['Prophet_MAE'],
                 'RF_MAE': df_merge['RF_MAE'],
                 'GB_MAE': df_merge['GB_MAE'],
-                'Hybrid_MAE': df_merge['Hybrid_MAE']
+                'Hybrid_MAE': df_merge['Hybrid_MAE'],
+                'ARIMA_RF_MAE': df_merge['ARIMA_RF_MAE'],
+                'SARIMA_GB_MAE': df_merge['SARIMA_GB_MAE'],
+                'Prophet_RF_MAE': df_merge['Prophet_RF_MAE'],
+                'SARIMA_Prophet_MAE': df_merge['SARIMA_Prophet_MAE']
             })
             reg_list.append(df_summary)
             

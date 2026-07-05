@@ -39,7 +39,7 @@ def run_regression_comparison():
     n_indicators = len(indicators)
     print(f"Aligned {n_indicators} indicators for paired analysis.")
     
-    models = ['ARIMA', 'SARIMA', 'Prophet', 'RF', 'GB', 'Hybrid']
+    models = ['ARIMA', 'SARIMA', 'Prophet', 'RF', 'GB', 'Hybrid', 'ARIMA_RF', 'SARIMA_GB', 'Prophet_RF', 'SARIMA_Prophet']
     metrics = ['RMSE', 'MAE']
     
     comparison_rows = []
